@@ -210,7 +210,7 @@ builtins.input = custom_input
             </div>
             {mode === 'repl' && (
               <form onSubmit={handleReplSubmit} className="p-6 bg-slate-950 border-t border-white/5 flex items-center gap-4">
-                <span className="text-indigo-500 font-black">>>></span>
+                <span className="text-indigo-500 font-black">{">>>"}</span>
                 <input ref={replInputRef} type="text" value={replInput} onChange={e => setReplInput(e.target.value)} className="flex-1 bg-transparent text-white code-font text-sm outline-none placeholder:opacity-20" placeholder="Type command..." />
               </form>
             )}

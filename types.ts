@@ -9,15 +9,21 @@ export type Role = 'student' | 'teacher' | 'admin';
 
 export interface User {
   id: string;
-  username: string;
+  username: string; // This is the Roll Number
   name: string;
   role: Role;
-  grades?: string[]; // These are IDs of Classes (Classrooms)
+  grades?: string[]; 
   bio?: string;
   points: number;
   streak: number;
   isFirstLogin: boolean;
   avatar?: string;
+  // Enhanced Academic Bio Fields
+  dob?: string;
+  bloodGroup?: string;
+  parentName?: string;
+  phone?: string;
+  address?: string;
 }
 
 export interface Classroom {
@@ -37,14 +43,12 @@ export interface TestCase {
 export interface Question {
   id: string;
   type: 'mcq' | 'coding';
-  title?: string; // Short label for the bank
+  title?: string; 
   text: string;
   category: string;
   difficulty: Difficulty;
-  // For MCQ
   options?: string[];
   correctOptionIndex?: number;
-  // For Coding
   starterCode?: string;
   testCases?: TestCase[];
   points: number;
@@ -56,7 +60,6 @@ export interface Assessment {
   description: string;
   targetGrades: string[];
   questionBank: Question[];
-  // Random assignment configuration
   randomMcqCount: number; 
   randomCodingCount: number;
   durationMinutes: number;
@@ -73,16 +76,16 @@ export interface LabExperiment {
   learningObjectives: string[];
   starterCode: string;
   testCases: TestCase[];
-  targetGrades: string[]; // These correspond to Classroom IDs
+  targetGrades: string[]; 
   solutionHint?: string;
   createdBy?: string;
   status: 'draft' | 'published';
-  deadline?: number; // Optional Unix timestamp for the deadline
+  deadline?: number;
 }
 
 export interface Submission {
   labId: string;
-  classId: string; // Critical for targeted querying
+  classId: string; 
   userId: string;
   userName: string;
   code: string;
@@ -97,7 +100,7 @@ export interface AssessmentSubmission {
   userId: string;
   userName: string;
   classId: string;
-  answers: { [questionId: string]: any }; // Choice index or code string
+  answers: { [questionId: string]: any }; 
   score: number;
   totalPoints: number;
   submittedAt: number;

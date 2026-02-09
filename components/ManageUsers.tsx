@@ -16,7 +16,7 @@ const ManageUsers: React.FC = () => {
     name: '',
     username: '',
     role: 'student' as Role,
-    gradeInput: '' // comma separated batches
+    gradeInput: '' 
   });
 
   const fetchUsers = async () => {
@@ -49,7 +49,7 @@ const ManageUsers: React.FC = () => {
             role: formData.role,
             grades: grades
         });
-        setSuccess(`Account modified.`);
+        setSuccess(`Account updated successfully.`);
       } else {
         await BackendService.createAccount({
             name: formData.name,
@@ -57,7 +57,7 @@ const ManageUsers: React.FC = () => {
             role: formData.role,
             grades: grades
         });
-        setSuccess(`Account provisioned.`);
+        setSuccess(`User account created.`);
       }
       
       setFormData({ name: '', username: '', role: 'student', gradeInput: '' });
@@ -85,13 +85,13 @@ const ManageUsers: React.FC = () => {
   };
 
   const handleRevoke = async (userId: string, name: string) => {
-    if (window.confirm(`Permanently revoke access for ${name}?`)) {
+    if (window.confirm(`Permanently remove access for student ${name}?`)) {
         try {
             await BackendService.deleteUser(userId);
-            setSuccess(`Identity neutralized.`);
+            setSuccess(`User account removed.`);
             fetchUsers();
         } catch (e) {
-            setError("Protocol failure.");
+            setError("Error processing request.");
         }
     }
   };
@@ -100,8 +100,8 @@ const ManageUsers: React.FC = () => {
     <div className="max-w-7xl mx-auto space-y-10 animate-in fade-in duration-500 pb-20">
       <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
         <div>
-          <p className="text-indigo-600 font-black uppercase tracking-[0.3em] text-[10px] mb-2">Security & Identity</p>
-          <h1 className="text-4xl font-black text-slate-900 dark:text-white tracking-tight">Identity Vault</h1>
+          <p className="text-indigo-600 font-black uppercase tracking-widest text-[10px] mb-2">Accounts Manager</p>
+          <h1 className="text-4xl font-black text-slate-900 dark:text-white tracking-tight">Student & Faculty Registry</h1>
         </div>
         <button 
           onClick={() => {
@@ -109,10 +109,10 @@ const ManageUsers: React.FC = () => {
             setShowForm(!showForm);
           }}
           className={`px-8 py-3 rounded-2xl font-black text-xs uppercase tracking-widest transition-all ${
-            showForm ? 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400' : 'bg-indigo-600 text-white shadow-xl shadow-indigo-600/20'
+            showForm ? 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700 shadow-sm' : 'bg-indigo-600 text-white shadow-lg'
           }`}
         >
-          {showForm ? 'Cancel Operation' : 'Provision New Identity'}
+          {showForm ? 'Cancel' : 'Add New User'}
         </button>
       </header>
 
@@ -122,14 +122,8 @@ const ManageUsers: React.FC = () => {
          </div>
       )}
 
-      {error && (
-         <div className="p-4 bg-red-50 dark:bg-red-950/20 border border-red-100 dark:border-red-800 rounded-2xl text-[10px] font-black uppercase tracking-widest text-red-600 dark:text-red-400 text-center animate-in slide-in-from-top-4">
-           {error}
-         </div>
-      )}
-
       {showForm && (
-        <form onSubmit={handleCreateOrUpdate} className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-[3rem] p-10 shadow-2xl space-y-8 animate-in slide-in-from-top-4">
+        <form onSubmit={handleCreateOrUpdate} className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-[3rem] p-10 shadow-xl space-y-8 animate-in slide-in-from-top-4">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             <div className="space-y-2">
               <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">Full Name</label>
@@ -141,7 +135,7 @@ const ManageUsers: React.FC = () => {
               />
             </div>
             <div className="space-y-2">
-              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">Digital ID (Username)</label>
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">Student ID / Username</label>
               <input 
                 required
                 disabled={!!editingId}
@@ -151,7 +145,7 @@ const ManageUsers: React.FC = () => {
               />
             </div>
             <div className="space-y-2">
-              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">Campus Role</label>
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">Account Role</label>
               <select 
                 className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl px-6 py-4 text-sm font-black focus:ring-2 focus:ring-indigo-500 outline-none dark:text-white"
                 value={formData.role}
@@ -163,29 +157,28 @@ const ManageUsers: React.FC = () => {
               </select>
             </div>
             <div className="space-y-2">
-              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">Assign Batches (Comma separated)</label>
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">Classes (Comma separated)</label>
               <input 
                 className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl px-6 py-4 text-sm font-bold focus:ring-2 focus:ring-indigo-500 outline-none dark:text-white"
                 value={formData.gradeInput}
                 onChange={e => setFormData({...formData, gradeInput: e.target.value})}
-                placeholder="e.g. 12-A, 11-CS"
+                placeholder="e.g. 11-A, 12-CS"
               />
             </div>
           </div>
-          <button type="submit" className="w-full bg-slate-900 dark:bg-indigo-600 text-white py-5 rounded-2xl font-black text-xs uppercase tracking-[0.3em] shadow-xl shadow-indigo-600/10 transition-all hover:bg-indigo-500">
-            {editingId ? 'Modify Record' : 'Enroll Identity'}
+          <button type="submit" className="w-full bg-slate-900 dark:bg-indigo-600 text-white py-5 rounded-2xl font-black text-xs uppercase tracking-[0.3em] shadow-xl hover:opacity-90 transition-all">
+            {editingId ? 'Update Account' : 'Register User'}
           </button>
         </form>
       )}
 
-      {/* Identity Table */}
       <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-[3rem] overflow-hidden shadow-sm">
         <table className="w-full text-left">
           <thead className="bg-slate-50 dark:bg-slate-800/50">
             <tr>
-              <th className="p-8 text-[10px] font-black text-slate-400 uppercase tracking-widest">Name & Access</th>
-              <th className="p-8 text-[10px] font-black text-slate-400 uppercase tracking-widest">Assigned Batches</th>
-              <th className="p-8 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Controls</th>
+              <th className="p-8 text-[10px] font-black text-slate-400 uppercase tracking-widest">Name & Role</th>
+              <th className="p-8 text-[10px] font-black text-slate-400 uppercase tracking-widest">Assigned Classes</th>
+              <th className="p-8 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
@@ -207,7 +200,7 @@ const ManageUsers: React.FC = () => {
                 <td className="p-8 text-right">
                   <div className="flex justify-end gap-6">
                     <button onClick={() => startEdit(u)} className="text-indigo-600 font-black text-[10px] uppercase tracking-widest hover:underline">Edit</button>
-                    <button onClick={() => handleRevoke(u.id, u.name)} className="text-red-500 font-black text-[10px] uppercase tracking-widest hover:text-red-700 transition-colors">Revoke</button>
+                    <button onClick={() => handleRevoke(u.id, u.name)} className="text-red-500 font-black text-[10px] uppercase tracking-widest hover:underline">Remove</button>
                   </div>
                 </td>
               </tr>

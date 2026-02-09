@@ -48,11 +48,11 @@ const ManageAssessments: React.FC = () => {
     const codingInBank = formData.questionBank?.filter(q => q.type === 'coding').length || 0;
 
     if ((formData.randomMcqCount || 0) > mcqInBank) {
-      alert(`Random MCQ count (${formData.randomMcqCount}) exceeds bank size (${mcqInBank}). Please add more questions to the bank.`);
+      alert(`Random MCQ count (${formData.randomMcqCount}) exceeds bank size (${mcqInBank}).`);
       return;
     }
     if ((formData.randomCodingCount || 0) > codingInBank) {
-      alert(`Random Coding count (${formData.randomCodingCount}) exceeds bank size (${codingInBank}). Please add more questions to the bank.`);
+      alert(`Random Coding count (${formData.randomCodingCount}) exceeds bank size (${codingInBank}).`);
       return;
     }
 
@@ -78,8 +78,7 @@ const ManageAssessments: React.FC = () => {
       setCurrentStep(1);
       setFormData({ title: '', description: '', targetGrades: [], questionBank: [], randomMcqCount: 0, randomCodingCount: 0, durationMinutes: 30, status: 'draft' });
     } catch (e: any) {
-      console.error("Critical: Failed to save assessment object to Firestore.", e);
-      alert(`Failed to save assessment: ${e.message || 'Check console for details'}`);
+      alert(`Failed to save assessment: ${e.message}`);
     }
   };
 
@@ -137,8 +136,8 @@ const ManageAssessments: React.FC = () => {
     <div className="max-w-7xl mx-auto space-y-10 animate-in fade-in duration-500 pb-20">
       <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
         <div>
-          <p className="text-indigo-600 font-black uppercase tracking-widest text-[10px] mb-2">Examination Bureau</p>
-          <h1 className="text-4xl font-black text-slate-900 dark:text-white tracking-tight">Assessment Architect</h1>
+          <p className="text-indigo-600 font-black uppercase tracking-widest text-[10px] mb-2">Exam Center</p>
+          <h1 className="text-4xl font-black text-slate-900 dark:text-white tracking-tight">Exam Manager</h1>
         </div>
         <button 
           onClick={() => { setShowForm(!showForm); setEditingId(null); setCurrentStep(1); }}
@@ -146,32 +145,31 @@ const ManageAssessments: React.FC = () => {
             showForm ? 'bg-slate-100 dark:bg-slate-800 text-slate-600' : 'bg-indigo-600 text-white shadow-xl shadow-indigo-600/20'
           }`}
         >
-          {showForm ? 'Return to Archive' : 'Create New Assessment'}
+          {showForm ? 'Cancel' : 'Create New Exam'}
         </button>
       </header>
 
       {showForm ? (
         <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-[2.5rem] p-10 shadow-2xl space-y-12">
-          
           <div className="flex gap-4 mb-8 bg-slate-50 dark:bg-slate-800/50 p-2 rounded-2xl border border-slate-200 dark:border-slate-800 w-fit">
              <button onClick={() => setCurrentStep(1)} className={`px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${currentStep === 1 ? 'bg-white dark:bg-slate-700 shadow-sm text-indigo-600' : 'text-slate-400'}`}>1. Strategy Setup</button>
-             <button onClick={() => setCurrentStep(2)} className={`px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${currentStep === 2 ? 'bg-white dark:bg-slate-700 shadow-sm text-indigo-600' : 'text-slate-400'}`}>2. Populate Bank</button>
+             <button onClick={() => setCurrentStep(2)} className={`px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${currentStep === 2 ? 'bg-white dark:bg-slate-700 shadow-sm text-indigo-600' : 'text-slate-400'}`}>2. Question Bank</button>
           </div>
 
           {currentStep === 1 ? (
             <section className="animate-in slide-in-from-left-4 duration-500 space-y-10">
               <div className="bg-indigo-50 dark:bg-indigo-900/10 p-10 rounded-[2.5rem] border border-indigo-100 dark:border-indigo-900/30">
-                <h3 className="text-[10px] font-black text-indigo-600 uppercase tracking-[0.3em] mb-6">Phase 1: Delivery Strategy</h3>
+                <h3 className="text-[10px] font-black text-indigo-600 uppercase tracking-[0.3em] mb-6">Delivery Settings</h3>
                 <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
                   <div className="lg:col-span-2 space-y-4">
                     <input 
-                      placeholder="Assessment Title" 
+                      placeholder="Exam Title" 
                       className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-5 py-4 text-sm font-black dark:text-white outline-none focus:ring-2 focus:ring-indigo-500"
                       value={formData.title}
                       onChange={e => setFormData({ ...formData, title: e.target.value })}
                     />
                     <textarea 
-                      placeholder="Student instructions and policy..." 
+                      placeholder="Instructions for students..." 
                       className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-5 py-4 text-sm font-medium h-24 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500"
                       value={formData.description}
                       onChange={e => setFormData({ ...formData, description: e.target.value })}
@@ -183,7 +181,7 @@ const ManageAssessments: React.FC = () => {
                         <input type="number" value={formData.durationMinutes} onChange={e => setFormData({...formData, durationMinutes: parseInt(e.target.value)})} className="w-full bg-transparent font-black text-lg outline-none dark:text-white" />
                      </div>
                      <div className="bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-700">
-                        <label className="text-[9px] font-black text-slate-400 uppercase block mb-2">Class Assignment</label>
+                        <label className="text-[9px] font-black text-slate-400 uppercase block mb-2">Assign to Classes</label>
                         <div className="flex flex-wrap gap-1">
                           {classrooms.map(cls => (
                             <button key={cls.id} onClick={() => setFormData(prev => ({ ...prev, targetGrades: prev.targetGrades?.includes(cls.id) ? prev.targetGrades.filter(g => g !== cls.id) : [...(prev.targetGrades || []), cls.id] }))} className={`px-2 py-1 rounded text-[8px] font-black uppercase transition-all ${formData.targetGrades?.includes(cls.id) ? 'bg-indigo-600 text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-400'}`}>{cls.name}</button>
@@ -193,28 +191,28 @@ const ManageAssessments: React.FC = () => {
                   </div>
                   <div className="space-y-4">
                      <div className="bg-indigo-600 p-4 rounded-xl text-white shadow-lg shadow-indigo-600/20">
-                        <label className="text-[9px] font-black uppercase block mb-2 opacity-70">MCQs per Student</label>
+                        <label className="text-[9px] font-black uppercase block mb-2 opacity-70">MCQs per Attempt</label>
                         <input type="number" value={formData.randomMcqCount} onChange={e => setFormData({...formData, randomMcqCount: parseInt(e.target.value)})} className="w-full bg-transparent font-black text-lg outline-none" />
                      </div>
                      <div className="bg-emerald-600 p-4 rounded-xl text-white shadow-lg shadow-emerald-600/20">
-                        <label className="text-[9px] font-black uppercase block mb-2 opacity-70">Coding per Student</label>
+                        <label className="text-[9px] font-black uppercase block mb-2 opacity-70">Coding Qs per Attempt</label>
                         <input type="number" value={formData.randomCodingCount} onChange={e => setFormData({...formData, randomCodingCount: parseInt(e.target.value)})} className="w-full bg-transparent font-black text-lg outline-none" />
                      </div>
                   </div>
                 </div>
               </div>
               <div className="flex justify-end">
-                <button onClick={() => setCurrentStep(2)} className="px-10 py-4 bg-slate-900 dark:bg-indigo-600 text-white rounded-2xl font-black text-[11px] uppercase tracking-widest shadow-xl">Proceed to Question Bank</button>
+                <button onClick={() => setCurrentStep(2)} className="px-10 py-4 bg-slate-900 dark:bg-indigo-600 text-white rounded-2xl font-black text-[11px] uppercase tracking-widest shadow-xl">Configure Question Pool</button>
               </div>
             </section>
           ) : (
             <section className="animate-in slide-in-from-right-4 duration-500 space-y-8">
               <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-4">
                 <div className="flex items-center gap-4">
-                   <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">Phase 2: Question Pool</h3>
+                   <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">Question Bank</h3>
                    <div className="flex gap-2">
-                     <span className={`px-3 py-1 rounded-full text-[8px] font-black uppercase ${ (formData.questionBank?.filter(q => q.type === 'mcq').length || 0) >= (formData.randomMcqCount || 0) ? 'bg-emerald-500/10 text-emerald-500' : 'bg-red-500/10 text-red-500 animate-pulse' }`}>MCQ: {formData.questionBank?.filter(q => q.type === 'mcq').length}/{formData.randomMcqCount} Needed</span>
-                     <span className={`px-3 py-1 rounded-full text-[8px] font-black uppercase ${ (formData.questionBank?.filter(q => q.type === 'coding').length || 0) >= (formData.randomCodingCount || 0) ? 'bg-emerald-500/10 text-emerald-500' : 'bg-red-500/10 text-red-500 animate-pulse' }`}>Coding: {formData.questionBank?.filter(q => q.type === 'coding').length}/{formData.randomCodingCount} Needed</span>
+                     <span className={`px-3 py-1 rounded-full text-[8px] font-black uppercase ${ (formData.questionBank?.filter(q => q.type === 'mcq').length || 0) >= (formData.randomMcqCount || 0) ? 'bg-emerald-500/10 text-emerald-500' : 'bg-red-500/10 text-red-500 animate-pulse' }`}>MCQ Bank: {formData.questionBank?.filter(q => q.type === 'mcq').length}/{formData.randomMcqCount}</span>
+                     <span className={`px-3 py-1 rounded-full text-[8px] font-black uppercase ${ (formData.questionBank?.filter(q => q.type === 'coding').length || 0) >= (formData.randomCodingCount || 0) ? 'bg-emerald-500/10 text-emerald-500' : 'bg-red-500/10 text-red-500 animate-pulse' }`}>Coding Bank: {formData.questionBank?.filter(q => q.type === 'coding').length}/{formData.randomCodingCount}</span>
                    </div>
                 </div>
                 <div className="flex gap-4">
@@ -229,7 +227,6 @@ const ManageAssessments: React.FC = () => {
                     <button onClick={() => removeQuestion(q.id)} className="absolute top-8 right-10 text-slate-300 hover:text-red-500 transition-all">
                       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M3 6h18m-2 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
                     </button>
-                    
                     <div className="flex items-center gap-6 mb-8">
                       <div className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest border ${q.type === 'mcq' ? 'bg-indigo-50 text-indigo-600 border-indigo-100' : 'bg-emerald-50 text-emerald-600 border-emerald-100'}`}>
                         {q.type.toUpperCase()} • Q{i+1}
@@ -240,25 +237,22 @@ const ManageAssessments: React.FC = () => {
                          <span className="text-[9px] font-black text-slate-400 uppercase">PTS</span>
                       </div>
                       <input 
-                        placeholder="Internal Identifier (e.g. Loops Basics)" 
+                        placeholder="Internal Title (e.g. For Loops)" 
                         className="bg-transparent border-b border-slate-200 dark:border-slate-700 text-sm font-black dark:text-white outline-none focus:border-indigo-500 transition-all flex-1"
                         value={q.title}
                         onChange={e => updateQuestion(q.id, { title: e.target.value })}
                       />
                     </div>
-
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
                       <div className="space-y-6">
                         <div className="space-y-2">
-                          <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Question Text</label>
+                          <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Question Content</label>
                           <textarea 
-                            placeholder="Type the question content here..."
                             className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl px-6 py-4 text-sm font-bold dark:text-white outline-none focus:ring-2 focus:ring-indigo-500 min-h-[140px]"
                             value={q.text}
                             onChange={e => updateQuestion(q.id, { text: e.target.value })}
                           />
                         </div>
-
                         {q.type === 'mcq' && (
                           <div className="space-y-4">
                              <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Answer Options</label>
@@ -287,11 +281,10 @@ const ManageAssessments: React.FC = () => {
                           </div>
                         )}
                       </div>
-
                       {q.type === 'coding' && (
                         <div className="space-y-6">
                            <div className="space-y-2">
-                              <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Starter Code (Initial State)</label>
+                              <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Starter Code</label>
                               <div className="bg-[#1a1a1a] rounded-2xl p-6 border border-white/5 shadow-inner">
                                  <textarea 
                                     className="w-full h-40 bg-transparent text-emerald-400 code-font text-xs outline-none resize-none scrollbar-thin"
@@ -303,8 +296,8 @@ const ManageAssessments: React.FC = () => {
                            </div>
                            <div className="space-y-4">
                               <div className="flex justify-between items-center">
-                                <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Automated Test Suite</label>
-                                <button onClick={() => addTestCase(q.id)} className="text-[9px] font-black text-indigo-600 uppercase tracking-widest">+ Add Verification Case</button>
+                                <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Test Cases</label>
+                                <button onClick={() => addTestCase(q.id)} className="text-[9px] font-black text-indigo-600 uppercase tracking-widest">+ Add Case</button>
                               </div>
                               <div className="space-y-3 max-h-[180px] overflow-y-auto scrollbar-thin pr-2">
                                  {q.testCases?.map((tc, tcIdx) => (
@@ -313,7 +306,7 @@ const ManageAssessments: React.FC = () => {
                                         <input placeholder="StdIn" className="w-full bg-slate-50 dark:bg-slate-800 p-2.5 rounded-lg text-[10px] code-font dark:text-white outline-none border border-transparent focus:border-indigo-500" value={tc.input} onChange={e => updateTestCase(q.id, tcIdx, {input: e.target.value})} />
                                       </div>
                                       <div className="col-span-5">
-                                        <input placeholder="Expected StdOut" className="w-full bg-slate-50 dark:bg-slate-800 p-2.5 rounded-lg text-[10px] code-font text-emerald-500 outline-none border border-transparent focus:border-emerald-500" value={tc.expectedOutput} onChange={e => updateTestCase(q.id, tcIdx, {expectedOutput: e.target.value})} />
+                                        <input placeholder="Expected Output" className="w-full bg-slate-50 dark:bg-slate-800 p-2.5 rounded-lg text-[10px] code-font text-emerald-500 outline-none border border-transparent focus:border-indigo-500" value={tc.expectedOutput} onChange={e => updateTestCase(q.id, tcIdx, {expectedOutput: e.target.value})} />
                                       </div>
                                       <div className="col-span-2 flex items-center justify-end pr-1">
                                         <button onClick={() => removeTestCase(q.id, tc.id)} className="text-slate-300 hover:text-red-500 transition-colors opacity-0 group-hover/tc:opacity-100">
@@ -330,11 +323,10 @@ const ManageAssessments: React.FC = () => {
                   </div>
                 ))}
               </div>
-
               <div className="flex gap-6 pt-12 border-t border-slate-100 dark:border-slate-800">
-                 <button onClick={() => setCurrentStep(1)} className="px-10 py-5 bg-slate-100 dark:bg-slate-800 text-slate-500 rounded-3xl font-black text-xs uppercase tracking-[0.3em] hover:bg-slate-200 transition-all">Back to Config</button>
-                 <button onClick={() => handleSave('draft')} className="flex-1 py-5 bg-slate-100 dark:bg-slate-800 text-slate-500 rounded-3xl font-black text-xs uppercase tracking-[0.3em] hover:bg-slate-200 transition-all">Archive Project</button>
-                 <button onClick={() => handleSave('published')} className="flex-[2] py-5 bg-indigo-600 text-white rounded-3xl font-black text-xs uppercase tracking-[0.3em] shadow-2xl hover:bg-indigo-500 transition-all">Finalize & Deploy</button>
+                 <button onClick={() => setCurrentStep(1)} className="px-10 py-5 bg-slate-100 dark:bg-slate-800 text-slate-500 rounded-3xl font-black text-xs uppercase tracking-[0.3em] hover:bg-slate-200 transition-all">Back</button>
+                 <button onClick={() => handleSave('draft')} className="flex-1 py-5 bg-slate-100 dark:bg-slate-800 text-slate-500 rounded-3xl font-black text-xs uppercase tracking-[0.3em] hover:bg-slate-200 transition-all">Save Draft</button>
+                 <button onClick={() => handleSave('published')} className="flex-[2] py-5 bg-indigo-600 text-white rounded-3xl font-black text-xs uppercase tracking-[0.3em] shadow-2xl hover:bg-indigo-500 transition-all">Publish Exam</button>
               </div>
             </section>
           )}
@@ -344,9 +336,8 @@ const ManageAssessments: React.FC = () => {
           <table className="w-full text-left">
             <thead className="bg-slate-50 dark:bg-slate-800/50">
               <tr>
-                <th className="p-8 text-[10px] font-black text-slate-400 uppercase tracking-widest">Assessment Profile</th>
-                <th className="p-8 text-[10px] font-black text-slate-400 uppercase tracking-widest">Delivery Strategy</th>
-                <th className="p-8 text-[10px] font-black text-slate-400 uppercase tracking-widest">Bank Density</th>
+                <th className="p-8 text-[10px] font-black text-slate-400 uppercase tracking-widest">Exam Profile</th>
+                <th className="p-8 text-[10px] font-black text-slate-400 uppercase tracking-widest">Questions</th>
                 <th className="p-8 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Actions</th>
               </tr>
             </thead>
@@ -357,30 +348,24 @@ const ManageAssessments: React.FC = () => {
                     <p className="text-sm font-black text-slate-900 dark:text-white">{a.title}</p>
                     <div className="flex items-center gap-2 mt-1">
                       <span className={`px-2 py-0.5 rounded text-[8px] font-black uppercase ${a.status === 'published' ? 'bg-emerald-500/10 text-emerald-500' : 'bg-amber-500/10 text-amber-500'}`}>{a.status}</span>
-                      <p className="text-[9px] text-slate-400 font-black uppercase tracking-widest">{a.durationMinutes} Min Session</p>
+                      <p className="text-[9px] text-slate-400 font-black uppercase tracking-widest">{a.durationMinutes} Mins</p>
                     </div>
                   </td>
                   <td className="p-8">
                     <div className="flex flex-col gap-1">
-                      <span className="text-[9px] font-black uppercase text-indigo-600">{a.randomMcqCount} MCQ / Attempt</span>
-                      <span className="text-[9px] font-black uppercase text-emerald-600">{a.randomCodingCount} Coding / Attempt</span>
-                    </div>
-                  </td>
-                  <td className="p-8">
-                    <div className="flex flex-col gap-1">
-                       <span className="px-3 py-1 bg-slate-100 dark:bg-slate-800 rounded-lg text-[9px] font-black text-slate-500 w-fit">{a.questionBank.length} Pool Items</span>
+                      <span className="text-[9px] font-black uppercase text-indigo-600">{a.randomMcqCount} MCQ / {a.randomCodingCount} Coding</span>
                     </div>
                   </td>
                   <td className="p-8 text-right">
                     <div className="flex justify-end gap-6">
-                      <button onClick={() => { setEditingId(a.id); setFormData(a); setShowForm(true); setCurrentStep(1); }} className="text-indigo-600 font-black text-[10px] uppercase hover:underline">Re-Architect</button>
-                      <button onClick={async () => { if (window.confirm("Archive this assessment protocol?")) { await BackendService.deleteAssessment(a.id); setAssessments(prev => prev.filter(x => x.id !== a.id)); } }} className="text-red-500 font-black text-[10px] uppercase">Archive</button>
+                      <button onClick={() => { setEditingId(a.id); setFormData(a); setShowForm(true); setCurrentStep(1); }} className="text-indigo-600 font-black text-[10px] uppercase hover:underline">Edit</button>
+                      <button onClick={async () => { if (window.confirm("Delete this exam?")) { await BackendService.deleteAssessment(a.id); setAssessments(prev => prev.filter(x => x.id !== a.id)); } }} className="text-red-500 font-black text-[10px] uppercase">Delete</button>
                     </div>
                   </td>
                 </tr>
               ))}
               {!assessments.length && !isLoading && (
-                <tr><td colSpan={4} className="p-20 text-center text-slate-400 font-black uppercase tracking-widest text-xs italic">Laboratory of Assessments is currently empty.</td></tr>
+                <tr><td colSpan={3} className="p-20 text-center text-slate-400 font-black uppercase tracking-widest text-xs italic">No exams found.</td></tr>
               )}
             </tbody>
           </table>

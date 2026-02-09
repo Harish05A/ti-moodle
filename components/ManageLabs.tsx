@@ -42,7 +42,7 @@ const ManageLabs: React.FC<ManageLabsProps> = ({ labs = [], onAddLab, onDeleteLa
     category: 'Programming',
     difficulty: Difficulty.BEGINNER,
     description: '',
-    starterCode: 'import sys\n\n# Your logic here\n',
+    starterCode: 'import sys\n\n# Student starter code here\n',
     solutionHint: '',
     targetGrades: [],
     learningObjectives: [''],
@@ -66,7 +66,7 @@ const ManageLabs: React.FC<ManageLabsProps> = ({ labs = [], onAddLab, onDeleteLa
   };
 
   const handleDelete = (labId: string, title: string) => {
-    if (window.confirm(`Permanently delete "${title}"?`)) {
+    if (window.confirm(`Permanently delete experiment "${title}"?`)) {
       if (onDeleteLab) {
         onDeleteLab(labId);
         showTempFeedback('success', 'Experiment removed.');
@@ -90,7 +90,7 @@ const ManageLabs: React.FC<ManageLabsProps> = ({ labs = [], onAddLab, onDeleteLa
     }
 
     if (!newLab.targetGrades || newLab.targetGrades.length === 0) {
-        showTempFeedback('error', 'You must assign this experiment to at least one classroom.');
+        showTempFeedback('error', 'Assign this experiment to at least one class.');
         return;
     }
 
@@ -106,13 +106,13 @@ const ManageLabs: React.FC<ManageLabsProps> = ({ labs = [], onAddLab, onDeleteLa
     setShowForm(false);
     setEditingId(null);
     setNewLab(initialLabState);
-    showTempFeedback('success', status === 'published' ? 'Experiment deployed to classrooms.' : 'Experiment saved as draft.');
+    showTempFeedback('success', status === 'published' ? 'Experiment published successfully.' : 'Draft saved.');
   };
 
   const handlePublishNow = (lab: LabExperiment) => {
     const updated = { ...lab, status: 'published' as const };
     onAddLab(updated);
-    showTempFeedback('success', `"${lab.title}" is now live.`);
+    showTempFeedback('success', `Experiment "${lab.title}" is now published.`);
   };
 
   const addTestCase = () => {
@@ -155,8 +155,8 @@ const ManageLabs: React.FC<ManageLabsProps> = ({ labs = [], onAddLab, onDeleteLa
     <div className="max-w-7xl mx-auto space-y-10 animate-in fade-in duration-500 pb-20">
       <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
         <div>
-          <p className="text-indigo-600 font-black uppercase tracking-widest text-[10px] mb-2">Curriculum Architect</p>
-          <h1 className="text-4xl font-black text-slate-900 dark:text-white tracking-tight">Experiment Builder</h1>
+          <p className="text-indigo-600 font-black uppercase tracking-widest text-[10px] mb-2">Lab Management</p>
+          <h1 className="text-4xl font-black text-slate-900 dark:text-white tracking-tight">Experiment Creator</h1>
         </div>
         <button 
           type="button"
@@ -167,11 +167,11 @@ const ManageLabs: React.FC<ManageLabsProps> = ({ labs = [], onAddLab, onDeleteLa
             }
             setShowForm(!showForm);
           }}
-          className={`px-8 py-3 rounded-2xl font-black text-xs uppercase tracking-widest transition-all shadow-xl ${
-            showForm ? 'bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400' : 'bg-indigo-600 text-white shadow-indigo-500/20'
+          className={`px-8 py-3 rounded-2xl font-black text-xs uppercase tracking-widest transition-all shadow-sm border ${
+            showForm ? 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700' : 'bg-indigo-600 text-white border-indigo-600'
           }`}
         >
-          {showForm ? 'Cancel Creation' : 'Create New Experiment'}
+          {showForm ? 'Cancel' : 'Create Experiment'}
         </button>
       </header>
 
@@ -184,17 +184,17 @@ const ManageLabs: React.FC<ManageLabsProps> = ({ labs = [], onAddLab, onDeleteLa
       )}
 
       {showForm && (
-        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-[2.5rem] p-10 shadow-2xl space-y-12 animate-in slide-in-from-top-4">
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-[2.5rem] p-10 shadow-xl space-y-12 animate-in slide-in-from-top-4">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
             <div className="space-y-8">
               <section className="space-y-6">
                 <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                    <div className="w-1.5 h-1.5 bg-indigo-500 rounded-full"></div> Core Properties
+                    <div className="w-1.5 h-1.5 bg-indigo-500 rounded-full"></div> Information
                 </h3>
                 <div className="space-y-4">
                   <input 
-                    placeholder="Experiment Title (e.g., Matrix Multiplier)" 
-                    className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-5 py-4 text-sm font-black focus:ring-2 focus:ring-indigo-500 outline-none dark:text-white"
+                    placeholder="Experiment Title" 
+                    className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-5 py-4 text-sm font-bold focus:ring-2 focus:ring-indigo-500 outline-none dark:text-white"
                     value={newLab.title}
                     onChange={e => setNewLab({...newLab, title: e.target.value})}
                     required
@@ -205,10 +205,10 @@ const ManageLabs: React.FC<ManageLabsProps> = ({ labs = [], onAddLab, onDeleteLa
                       value={newLab.category}
                       onChange={e => setNewLab({...newLab, category: e.target.value})}
                     >
-                      <option>Programming</option>
+                      <option>General Programming</option>
                       <option>Algorithms</option>
                       <option>Data Structures</option>
-                      <option>Mathematics</option>
+                      <option>Project Work</option>
                     </select>
                     <select 
                       className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-5 py-4 text-sm font-bold focus:ring-2 focus:ring-indigo-500 outline-none dark:text-white"
@@ -221,44 +221,38 @@ const ManageLabs: React.FC<ManageLabsProps> = ({ labs = [], onAddLab, onDeleteLa
                     </select>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Deadline (Optional)</label>
-                      <input 
-                        type="datetime-local"
-                        className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-5 py-4 text-xs font-bold focus:ring-2 focus:ring-indigo-500 outline-none dark:text-white"
-                        value={formatTimestampForInput(newLab.deadline)}
-                        onChange={e => setNewLab({...newLab, deadline: e.target.value ? new Date(e.target.value).getTime() : undefined})}
-                      />
-                    </div>
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Deadline</label>
+                    <input 
+                      type="datetime-local"
+                      className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-5 py-4 text-xs font-bold focus:ring-2 focus:ring-indigo-500 outline-none dark:text-white"
+                      value={formatTimestampForInput(newLab.deadline)}
+                      onChange={e => setNewLab({...newLab, deadline: e.target.value ? new Date(e.target.value).getTime() : undefined})}
+                    />
                   </div>
 
                   <div className="space-y-3">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Deploy to Classrooms</label>
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Target Classes</label>
                     <div className="flex flex-wrap gap-2">
-                        {classrooms.length === 0 ? (
-                            <p className="text-[10px] text-red-500 font-bold uppercase italic">Error: No assigned classrooms found.</p>
-                        ) : (
-                            classrooms.map(cls => (
-                                <button
-                                    key={cls.id}
-                                    type="button"
-                                    onClick={() => toggleClassroom(cls.id)}
-                                    className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all ${
-                                        newLab.targetGrades?.includes(cls.id)
-                                            ? 'bg-indigo-600 text-white border-indigo-600 shadow-lg shadow-indigo-600/20'
-                                            : 'bg-slate-50 dark:bg-slate-800 text-slate-400 dark:text-slate-500 border-slate-200 dark:border-slate-700 hover:border-indigo-400'
-                                    }`}
-                                >
-                                    {cls.name}
-                                </button>
-                            ))
-                        )}
+                        {classrooms.map(cls => (
+                            <button
+                                key={cls.id}
+                                type="button"
+                                onClick={() => toggleClassroom(cls.id)}
+                                className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all ${
+                                    newLab.targetGrades?.includes(cls.id)
+                                        ? 'bg-indigo-600 text-white border-indigo-600'
+                                        : 'bg-slate-50 dark:bg-slate-800 text-slate-400 dark:text-slate-500 border-slate-200 dark:border-slate-700 hover:border-indigo-400'
+                                }`}
+                            >
+                                {cls.name}
+                            </button>
+                        ))}
                     </div>
                   </div>
 
                   <textarea 
-                    placeholder="Problem description and constraints..." 
+                    placeholder="Problem description and requirements..." 
                     rows={4}
                     className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-5 py-4 text-sm font-medium focus:ring-2 focus:ring-indigo-500 outline-none dark:text-white"
                     value={newLab.description}
@@ -271,9 +265,9 @@ const ManageLabs: React.FC<ManageLabsProps> = ({ labs = [], onAddLab, onDeleteLa
               <section className="space-y-4">
                 <div className="flex justify-between items-center">
                   <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                    <div className="w-1.5 h-1.5 bg-indigo-500 rounded-full"></div> Learning Objectives
+                    <div className="w-1.5 h-1.5 bg-indigo-500 rounded-full"></div> Learning Goals
                   </h3>
-                  <button type="button" onClick={addObjective} className="text-indigo-600 text-[10px] font-black uppercase tracking-widest">+ Add</button>
+                  <button type="button" onClick={addObjective} className="text-indigo-600 text-[10px] font-black uppercase tracking-widest">Add Item</button>
                 </div>
                 <div className="space-y-2">
                    {newLab.learningObjectives?.map((obj, i) => (
@@ -292,9 +286,9 @@ const ManageLabs: React.FC<ManageLabsProps> = ({ labs = [], onAddLab, onDeleteLa
             <div className="space-y-8 flex flex-col">
               <section className="flex-1 min-h-[300px] flex flex-col">
                 <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2">
-                  <div className="w-1.5 h-1.5 bg-indigo-500 rounded-full"></div> Initial Skeleton Code
+                  <div className="w-1.5 h-1.5 bg-indigo-500 rounded-full"></div> Initial Code
                 </h3>
-                <div className="flex-1 bg-[#1a1a1a] rounded-2xl p-6 relative border border-white/10">
+                <div className="flex-1 bg-slate-900 rounded-2xl p-6 relative border border-white/5 shadow-inner">
                   <textarea 
                     className="w-full h-full bg-transparent text-emerald-400 code-font text-sm outline-none resize-none scrollbar-thin"
                     value={newLab.starterCode}
@@ -307,16 +301,16 @@ const ManageLabs: React.FC<ManageLabsProps> = ({ labs = [], onAddLab, onDeleteLa
               <section className="space-y-4">
                 <div className="flex justify-between items-center">
                   <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                    <div className="w-1.5 h-1.5 bg-indigo-500 rounded-full"></div> Test Case Suite
+                    <div className="w-1.5 h-1.5 bg-indigo-500 rounded-full"></div> Validation Cases
                   </h3>
-                  <button type="button" onClick={addTestCase} className="text-indigo-600 text-[10px] font-black uppercase tracking-widest">+ Add Case</button>
+                  <button type="button" onClick={addTestCase} className="text-indigo-600 text-[10px] font-black uppercase tracking-widest">Add Case</button>
                 </div>
                 <div className="space-y-3 max-h-[250px] overflow-y-auto pr-2 scrollbar-thin">
                     {newLab.testCases?.map((tc, i) => (
                       <div key={tc.id} className="bg-slate-50 dark:bg-slate-800 p-4 rounded-xl border border-slate-200 dark:border-slate-700 space-y-3">
                          <div className="grid grid-cols-2 gap-4">
                             <input 
-                              placeholder="Input"
+                              placeholder="Standard Input"
                               className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-xs code-font dark:text-white"
                               value={tc.input}
                               onChange={e => updateTestCase(i, 'input', e.target.value)}
@@ -338,15 +332,15 @@ const ManageLabs: React.FC<ManageLabsProps> = ({ labs = [], onAddLab, onDeleteLa
           <div className="flex gap-4">
             <button 
               onClick={() => saveExperiment('draft')}
-              className="flex-1 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 py-6 rounded-[1.5rem] font-black text-sm uppercase tracking-[0.3em] hover:bg-slate-200 transition-all"
+              className="flex-1 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 py-5 rounded-[1.5rem] font-black text-sm uppercase tracking-widest hover:bg-slate-200 transition-all"
             >
-              Save as Draft
+              Save Draft
             </button>
             <button 
               onClick={() => saveExperiment('published')}
-              className="flex-[2] bg-indigo-600 text-white py-6 rounded-[1.5rem] font-black text-sm uppercase tracking-[0.3em] shadow-2xl hover:bg-indigo-700 transition-all"
+              className="flex-[2] bg-indigo-600 text-white py-5 rounded-[1.5rem] font-black text-sm uppercase tracking-widest shadow-lg hover:bg-indigo-700 transition-all"
             >
-              {editingId ? 'Push Updates' : 'Deploy Experiment'}
+              {editingId ? 'Update & Publish' : 'Publish Experiment'}
             </button>
           </div>
         </div>
@@ -356,9 +350,9 @@ const ManageLabs: React.FC<ManageLabsProps> = ({ labs = [], onAddLab, onDeleteLa
         <table className="w-full text-left">
           <thead className="bg-slate-50 dark:bg-slate-800/50">
             <tr>
-              <th className="p-8 text-[10px] font-black text-slate-400 uppercase tracking-widest">Title & Identity</th>
-              <th className="p-8 text-[10px] font-black text-slate-400 uppercase tracking-widest">Status & Deadline</th>
-              <th className="p-8 text-[10px] font-black text-slate-400 uppercase tracking-widest">Target Classrooms</th>
+              <th className="p-8 text-[10px] font-black text-slate-400 uppercase tracking-widest">Experiment</th>
+              <th className="p-8 text-[10px] font-black text-slate-400 uppercase tracking-widest">Status</th>
+              <th className="p-8 text-[10px] font-black text-slate-400 uppercase tracking-widest">Assigned Classes</th>
               <th className="p-8 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Actions</th>
             </tr>
           </thead>
@@ -370,25 +364,13 @@ const ManageLabs: React.FC<ManageLabsProps> = ({ labs = [], onAddLab, onDeleteLa
                   <p className="text-[9px] text-slate-400 uppercase font-black tracking-widest mt-1">{lab.category} • {lab.difficulty}</p>
                 </td>
                 <td className="p-8">
-                    <div className="flex flex-col gap-2">
-                        <span className={`w-fit px-3 py-1 rounded-full text-[8px] font-black uppercase tracking-widest border ${
-                            lab.status === 'published' 
-                                ? 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 border-emerald-100 dark:border-emerald-800' 
-                                : 'bg-amber-50 dark:bg-amber-900/20 text-amber-600 border-amber-100 dark:border-amber-800'
-                        }`}>
-                            {lab.status}
-                        </span>
-                        {lab.deadline ? (
-                            <span className={`text-[9px] font-bold uppercase tracking-tight ${
-                                Date.now() > lab.deadline ? 'text-red-500' : 'text-slate-400'
-                            }`}>
-                                {Date.now() > lab.deadline ? 'Expired: ' : 'Due: '}
-                                {new Date(lab.deadline).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}
-                            </span>
-                        ) : (
-                            <span className="text-[9px] text-slate-300 italic uppercase">No deadline set</span>
-                        )}
-                    </div>
+                    <span className={`px-3 py-1 rounded-full text-[8px] font-black uppercase tracking-widest border ${
+                        lab.status === 'published' 
+                            ? 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 border-emerald-100 dark:border-emerald-800' 
+                            : 'bg-amber-50 dark:bg-amber-900/20 text-amber-600 border-amber-100 dark:border-amber-800'
+                    }`}>
+                        {lab.status}
+                    </span>
                 </td>
                 <td className="p-8">
                     <div className="flex flex-wrap gap-1.5">
@@ -404,16 +386,8 @@ const ManageLabs: React.FC<ManageLabsProps> = ({ labs = [], onAddLab, onDeleteLa
                 </td>
                 <td className="p-8 text-right">
                   <div className="flex justify-end gap-6 items-center">
-                    {lab.status === 'draft' && (
-                        <button 
-                            onClick={() => handlePublishNow(lab)}
-                            className="text-emerald-600 dark:text-emerald-400 text-[10px] font-black uppercase tracking-widest hover:underline"
-                        >
-                            Deploy
-                        </button>
-                    )}
                     <button onClick={() => startEditing(lab)} className="text-indigo-600 dark:text-indigo-400 text-[10px] font-black uppercase tracking-widest hover:underline">Edit</button>
-                    <button onClick={() => handleDelete(lab.id, lab.title)} className="text-red-500 text-[10px] font-black uppercase tracking-widest">Delete</button>
+                    <button onClick={() => handleDelete(lab.id, lab.title)} className="text-red-500 text-[10px] font-black uppercase tracking-widest hover:underline">Delete</button>
                   </div>
                 </td>
               </tr>

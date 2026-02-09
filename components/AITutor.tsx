@@ -5,7 +5,7 @@ import { ChatMessage } from '../types';
 
 const AITutor: React.FC = () => {
   const [messages, setMessages] = useState<ChatMessage[]>([
-    { role: 'model', content: "Welcome to the AI Tutoring environment. I can assist you with logic, syntax, or theoretical concepts. How can I help you today?" }
+    { role: 'model', content: "Welcome to the AI Support environment. I can assist you with logic, syntax, or theoretical concepts. How can I help you today?" }
   ]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -35,12 +35,12 @@ const AITutor: React.FC = () => {
     <div className="max-w-4xl mx-auto h-[calc(100vh-140px)] flex flex-col bg-white dark:bg-slate-900 rounded-3xl shadow-xl border border-slate-200 dark:border-slate-800 overflow-hidden transition-colors duration-300 animate-in fade-in">
       <div className="bg-slate-900 dark:bg-slate-950 p-6 text-white flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <div className="w-12 h-12 bg-indigo-600 rounded-2xl flex items-center justify-center font-bold text-sm tracking-tighter border border-white/10">
-            AI
+          <div className="w-12 h-12 bg-indigo-600 rounded-2xl flex items-center justify-center border border-white/10 text-white">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 8V4H8"/><rect width="16" height="12" x="4" y="8" rx="2"/><path d="M2 14h2"/><path d="M20 14h2"/><path d="M15 13v2"/><path d="M9 13v2"/></svg>
           </div>
           <div>
-            <h2 className="text-xl font-bold leading-tight">Virtual Assistant</h2>
-            <p className="text-slate-400 text-xs font-medium">Higher Secondary Computer Science Specialist</p>
+            <h2 className="text-xl font-bold leading-tight">AI Assistant</h2>
+            <p className="text-slate-400 text-xs font-medium">Academic Support Specialist</p>
           </div>
         </div>
         <div className="flex gap-2 items-center">

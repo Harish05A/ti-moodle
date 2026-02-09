@@ -46,7 +46,6 @@ const PythonCompiler: React.FC = () => {
   const [isExecuting, setIsExecuting] = useState(false);
   const [pyodide, setPyodide] = useState<any>(null);
   const [history, setHistory] = useState<string[]>([]);
-  const [historyIdx, setHistoryIdx] = useState(-1);
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const highlightRef = useRef<HTMLPreElement>(null);
@@ -127,11 +126,9 @@ builtins.input = custom_input
     setTerminalHistory(prev => [...prev, { type: 'prompt', content: `>>> ${cmd}` }]);
     setHistory(prev => [cmd, ...prev]);
     setReplInput('');
-    setHistoryIdx(-1);
     setIsExecuting(true);
 
     try {
-      // Direct execution in global scope for REPL behavior
       const result = await pyodide.runPythonAsync(cmd);
       if (result !== undefined) {
         setTerminalHistory(prev => [...prev, { type: 'stdout', content: String(result) }]);
@@ -141,6 +138,24 @@ builtins.input = custom_input
     } finally {
       setIsExecuting(false);
     }
+  };
+
+  // Fixed Style Definition for Parity
+  const editorStyles: React.CSSProperties = {
+    fontFamily: "'Fira Code', monospace",
+    fontSize: "14px",
+    lineHeight: "24px",
+    tabSize: 4,
+    padding: "32px",
+    paddingTop: "24px",
+    margin: 0,
+    border: "none",
+    boxSizing: "border-box",
+    letterSpacing: "normal",
+    fontVariantLigatures: "none",
+    textAlign: "left",
+    whiteSpace: "pre",
+    wordBreak: "normal"
   };
 
   return (
@@ -175,11 +190,22 @@ builtins.input = custom_input
                 <div className="w-1.5 h-1.5 rounded-full bg-indigo-500"></div>
                 <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">workspace.py</span>
             </div>
-            <div className="flex-1 relative mt-16">
-              <pre ref={highlightRef} className="absolute inset-0 p-8 pt-0 code-font text-sm whitespace-pre pointer-events-none overflow-hidden text-slate-800 dark:text-slate-300 leading-relaxed"
-                dangerouslySetInnerHTML={{ __html: highlightPython(code) + '\n' }} />
-              <textarea ref={textareaRef} value={code} onChange={e => setCode(e.target.value)} onScroll={syncScroll} spellCheck={false}
-                className="absolute inset-0 w-full h-full bg-transparent text-transparent caret-indigo-600 p-8 pt-0 code-font text-sm focus:outline-none resize-none m-0 border-none scrollbar-thin" />
+            <div className="flex-1 relative mt-16 overflow-hidden">
+              <pre 
+                ref={highlightRef} 
+                style={editorStyles}
+                className="absolute inset-0 whitespace-pre pointer-events-none overflow-hidden text-slate-800 dark:text-slate-300"
+                dangerouslySetInnerHTML={{ __html: highlightPython(code) + '\n' }} 
+              />
+              <textarea 
+                ref={textareaRef} 
+                value={code} 
+                onChange={e => setCode(e.target.value)} 
+                onScroll={syncScroll} 
+                spellCheck={false}
+                style={editorStyles}
+                className="absolute inset-0 w-full h-full bg-transparent text-transparent caret-indigo-600 focus:outline-none resize-none scrollbar-thin overflow-auto" 
+              />
             </div>
           </div>
         </div>
@@ -210,7 +236,7 @@ builtins.input = custom_input
             </div>
             {mode === 'repl' && (
               <form onSubmit={handleReplSubmit} className="p-6 bg-slate-950 border-t border-white/5 flex items-center gap-4">
-                <span className="text-indigo-500 font-black">{">>>"}</span>
+                <span className="text-indigo-500 font-black">{"\u003E\u003E\u003E"}</span>
                 <input ref={replInputRef} type="text" value={replInput} onChange={e => setReplInput(e.target.value)} className="flex-1 bg-transparent text-white code-font text-sm outline-none placeholder:opacity-20" placeholder="Type command..." />
               </form>
             )}

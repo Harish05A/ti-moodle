@@ -20,9 +20,7 @@ interface CodeEditorProps {
 
 const highlightPython = (code: string) => {
   if (!code) return '';
-  
   let h = code.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-  
   const tokens: { [key: string]: string } = {};
   let tokenCount = 0;
   const addToken = (html: string) => {
@@ -30,7 +28,6 @@ const highlightPython = (code: string) => {
     tokens[key] = html;
     return key;
   };
-
   h = h.replace(/(""".*?"""|'''.*?''')/gs, (m) => addToken(`<span class="text-amber-400 opacity-90">${m}</span>`));
   h = h.replace(/(#.*)/g, (m) => addToken(`<span class="text-slate-500 italic">${m}</span>`));
   h = h.replace(/(".*?"|'.*?')/g, (m) => addToken(`<span class="text-amber-400">${m}</span>`));
@@ -44,11 +41,9 @@ const highlightPython = (code: string) => {
   const builtins = /\b(print|input|int|float|str|list|dict|set|tuple|range|len|max|min|sum|open|sorted|reversed|enumerate|zip|map|filter|all|any|abs|pow|round|id|type|chr|ord|bin|hex|oct|super|classmethod|staticmethod|property|isinstance|issubclass|vars|dir|help|eval|exec)\b/g;
   h = h.replace(builtins, (m) => addToken(`<span class="text-emerald-400 font-medium">${m}</span>`));
   h = h.replace(/\b(\d+(\.\d+)?)\b/g, (m) => addToken(`<span class="text-pink-400 font-mono">${m}</span>`));
-
   Object.keys(tokens).sort((a, b) => parseInt(b.replace(/\D/g, '')) - parseInt(a.replace(/\D/g, ''))).forEach(key => {
     h = h.replace(key, tokens[key]);
   });
-
   return h;
 };
 
@@ -102,10 +97,7 @@ const CodeEditor: React.FC<CodeEditorProps> = ({ initialCode, onCodeChange, test
     setActiveTab('result');
     setDrawerOpen(true);
 
-    const casesToRun = isSubmission ? testCases : [
-        { id: 'custom', input: customInput, expectedOutput: '?', isHidden: false }
-    ];
-
+    const casesToRun = isSubmission ? testCases : [{ id: 'custom', input: customInput, expectedOutput: '?', isHidden: false }];
     const results: TestResult[] = [];
     let allPassed = true;
 
@@ -126,7 +118,6 @@ builtins.input = mock_in
         `);
         await pyodide.runPythonAsync(code);
         const actual = pyodide.runPython("sys.stdout.getvalue()").trim();
-        
         if (isSubmission) {
             const passed = actual === tc.expectedOutput.trim();
             results.push({ id: tc.id, status: passed ? 'passed' : 'failed', actualOutput: actual, isHidden: tc.isHidden });
@@ -139,7 +130,6 @@ builtins.input = mock_in
         allPassed = false;
       }
     }
-
     setTestResults(results);
     setIsProcessing(false);
     if (isSubmission) {
@@ -154,6 +144,24 @@ builtins.input = mock_in
   };
 
   const currentResult = testResults[selectedCaseIdx];
+
+  // Identical Style Definition
+  const editorStyles: React.CSSProperties = {
+    fontFamily: "'Fira Code', monospace",
+    fontSize: "14px",
+    lineHeight: "24px",
+    tabSize: 4,
+    padding: "32px",
+    paddingTop: "32px",
+    margin: 0,
+    border: "none",
+    boxSizing: "border-box",
+    letterSpacing: "normal",
+    fontVariantLigatures: "none",
+    textAlign: "left",
+    whiteSpace: "pre",
+    wordBreak: "normal"
+  };
 
   return (
     <div className="flex flex-col h-full bg-[#1e1e1e] overflow-hidden text-slate-300">
@@ -184,15 +192,25 @@ builtins.input = mock_in
 
       <div className="flex-1 relative overflow-hidden">
         <div className="absolute left-0 top-0 bottom-0 w-12 bg-[#1a1a1a] border-r border-white/5 flex flex-col items-center pt-8 text-[11px] text-slate-600 font-mono select-none">
-          {Array.from({length: 40}).map((_,i) => <div key={i} className="h-[20px] leading-[20px]">{i+1}</div>)}
+          {Array.from({length: 80}).map((_,i) => <div key={i} className="h-[24px] leading-[24px]">{i+1}</div>)}
         </div>
         
         <div className="absolute inset-0 ml-12 overflow-hidden">
-            <pre ref={highlightRef} className="absolute inset-0 p-8 pt-0 mt-8 code-font text-[13px] leading-[20px] whitespace-pre pointer-events-none overflow-hidden m-0"
-              dangerouslySetInnerHTML={{ __html: highlightPython(code) + '\n' }} />
-            <textarea ref={textareaRef} value={code} onChange={e => { setCode(e.target.value); onCodeChange?.(e.target.value); }}
-              onScroll={syncScroll} spellCheck={false}
-              className="absolute inset-0 w-full h-full bg-transparent text-transparent caret-white p-8 pt-0 mt-8 code-font text-[13px] focus:outline-none resize-none leading-[20px] m-0 border-none scrollbar-thin scrollbar-thumb-white/10" />
+            <pre 
+              ref={highlightRef} 
+              style={editorStyles}
+              className="absolute inset-0 whitespace-pre pointer-events-none overflow-hidden m-0 border-none"
+              dangerouslySetInnerHTML={{ __html: highlightPython(code) + '\n' }} 
+            />
+            <textarea 
+              ref={textareaRef} 
+              value={code} 
+              onChange={e => { setCode(e.target.value); onCodeChange?.(e.target.value); }}
+              onScroll={syncScroll} 
+              spellCheck={false}
+              style={editorStyles}
+              className="absolute inset-0 w-full h-full bg-transparent text-transparent caret-white focus:outline-none resize-none m-0 border-none scrollbar-thin scrollbar-thumb-white/10 overflow-auto" 
+            />
         </div>
       </div>
 

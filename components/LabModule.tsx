@@ -48,10 +48,16 @@ const LabModule: React.FC<LabModuleProps> = ({ lab, user, onBack, classId }) => 
       submittedAt: Date.now(),
     };
     
+    // Calculate XP based on difficulty
+    let xpAward = 100;
+    if (lab.difficulty === 'Beginner') xpAward = 50;
+    else if (lab.difficulty === 'Intermediate') xpAward = 100;
+    else if (lab.difficulty === 'Advanced') xpAward = 150;
+
     try {
-        await BackendService.submitLab(newSubmission);
+        await BackendService.submitLab(newSubmission, xpAward);
         setSubmission(newSubmission);
-        alert("All Tests Passed: Your solution has been submitted for review.");
+        alert(`All Tests Passed: Your solution has been submitted! You earned +${xpAward} XP!`);
     } catch (e) {
         console.error("Submission failed:", e);
         alert("Connection Error: Could not save solution. Please try again.");
@@ -139,6 +145,7 @@ const LabModule: React.FC<LabModuleProps> = ({ lab, user, onBack, classId }) => 
             onCodeChange={setCurrentCode} 
             testCases={lab.testCases || []}
             onFinalSubmit={handleEditorFinalSubmit}
+            readOnly={user.role === 'student' && (submission?.status === 'graded' || submission?.status === 'submitted')}
           />
         </div>
       </div>

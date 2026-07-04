@@ -8,6 +8,8 @@ interface TestResult {
   actualOutput?: string;
   error?: string;
   isHidden?: boolean;
+  expectedOutput?: string;
+  input?: string;
 }
 
 interface CodeEditorProps {
@@ -16,6 +18,7 @@ interface CodeEditorProps {
   testCases?: TestCase[];
   onFinalSubmit?: (code: string, allPassed: boolean) => void;
   hideSubmit?: boolean;
+  readOnly?: boolean;
 }
 
 const highlightPython = (code: string) => {
@@ -47,7 +50,7 @@ const highlightPython = (code: string) => {
   return h;
 };
 
-const CodeEditor: React.FC<CodeEditorProps> = ({ initialCode, onCodeChange, testCases = [], onFinalSubmit, hideSubmit }) => {
+const CodeEditor: React.FC<CodeEditorProps> = ({ initialCode, onCodeChange, testCases = [], onFinalSubmit, hideSubmit, readOnly }) => {
   const [code, setCode] = useState(initialCode || "");
   const [stdout, setStdout] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
@@ -97,7 +100,14 @@ const CodeEditor: React.FC<CodeEditorProps> = ({ initialCode, onCodeChange, test
     setActiveTab('result');
     setDrawerOpen(true);
 
-    const casesToRun = isSubmission ? testCases : [{ id: 'custom', input: customInput, expectedOutput: '?', isHidden: false }];
+    const publicCases = testCases.filter(tc => !tc.isHidden);
+    const casesToRun = isSubmission 
+      ? testCases 
+      : [
+          ...publicCases,
+          ...(customInput ? [{ id: 'custom', input: customInput, expectedOutput: '', isHidden: false }] : [])
+        ];
+
     const results: TestResult[] = [];
     let allPassed = true;
 
@@ -118,20 +128,50 @@ builtins.input = mock_in
         `);
         await pyodide.runPythonAsync(code);
         const actual = pyodide.runPython("sys.stdout.getvalue()").trim();
-        if (isSubmission) {
-            const passed = actual === tc.expectedOutput.trim();
-            results.push({ id: tc.id, status: passed ? 'passed' : 'failed', actualOutput: actual, isHidden: tc.isHidden });
-            if (!passed) allPassed = false;
+        
+        if (tc.id === 'custom') {
+          results.push({ 
+            id: 'custom', 
+            status: 'idle', 
+            actualOutput: actual, 
+            expectedOutput: '', 
+            input: tc.input, 
+            isHidden: false 
+          });
         } else {
-            results.push({ id: 'custom', status: 'idle', actualOutput: actual });
+          const passed = actual === tc.expectedOutput.trim();
+          results.push({ 
+            id: tc.id, 
+            status: passed ? 'passed' : 'failed', 
+            actualOutput: actual, 
+            expectedOutput: tc.expectedOutput, 
+            input: tc.input, 
+            isHidden: tc.isHidden 
+          });
+          if (!passed) allPassed = false;
         }
       } catch (e: any) {
-        results.push({ id: tc.id, status: 'error', error: e.message });
-        allPassed = false;
+        results.push({ 
+          id: tc.id, 
+          status: 'error', 
+          error: e.message, 
+          actualOutput: '', 
+          expectedOutput: tc.id === 'custom' ? '' : tc.expectedOutput, 
+          input: tc.input, 
+          isHidden: tc.isHidden 
+        });
+        if (tc.id !== 'custom') {
+          allPassed = false;
+        }
       }
     }
     setTestResults(results);
     setIsProcessing(false);
+    
+    // Auto-select the first failed testcase, or first testcase if all passed
+    const firstFailedIdx = results.findIndex(r => r.status === 'failed' || r.status === 'error');
+    setSelectedCaseIdx(firstFailedIdx >= 0 ? firstFailedIdx : 0);
+
     if (isSubmission) {
         setVerdict(allPassed ? 'accepted' : 'failed');
         if (onFinalSubmit) onFinalSubmit(code, allPassed);
@@ -164,34 +204,50 @@ builtins.input = mock_in
   };
 
   return (
-    <div className="flex flex-col h-full bg-[#1e1e1e] overflow-hidden text-slate-300">
-      <div className="bg-[#1a1a1a] border-b border-white/5 px-4 py-2 flex justify-between items-center shrink-0">
-        <div className="flex items-center gap-2">
-          <select className="bg-[#2a2a2a] text-slate-300 border border-white/10 rounded px-2 py-1 text-xs outline-none focus:border-emerald-500">
-            <option>Python3</option>
+    <div className="flex flex-col h-full bg-[#161616] overflow-hidden text-slate-300">
+      <div className="bg-[#121212] border-b border-white/5 px-4 py-2.5 flex justify-between items-center shrink-0">
+        <div className="flex items-center gap-3">
+          <select className="bg-[#222] text-slate-300 border border-white/10 rounded-lg px-2.5 py-1.5 text-xs outline-none focus:border-indigo-500 font-bold">
+            <option>Python 3</option>
           </select>
-          <div className="h-4 w-[1px] bg-white/10 mx-2"></div>
-          {!hideSubmit && (
+
+          <div className="flex items-center gap-1.5 px-2 py-1 bg-white/5 rounded-lg border border-white/5">
+            <div className={`w-1.5 h-1.5 rounded-full ${pyodide ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500 animate-pulse'}`} />
+            <span className="text-[9px] font-black uppercase tracking-widest text-slate-400">
+              {pyodide ? 'Python Engine Ready' : 'Spawning Engine...'}
+            </span>
+          </div>
+
+          <div className="h-4 w-[1px] bg-white/10 mx-1"></div>
+
+          {!hideSubmit && !readOnly ? (
             <button 
               onClick={() => setShowSubmitConfirm(true)}
               disabled={isProcessing}
-              className="flex items-center gap-2 px-4 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-[10px] text-[10px] font-black uppercase tracking-widest transition-all shadow-lg shadow-emerald-600/10 disabled:opacity-50"
+              className="flex items-center gap-2 px-4 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-all shadow-lg shadow-indigo-600/25 disabled:opacity-50"
             >
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M20 6 9 17l-5-5"/></svg>
-              Submit for Grading
+              Submit solution
             </button>
-          )}
+          ) : readOnly ? (
+            <div className="flex items-center gap-2 px-3 py-1.5 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded-xl text-[10px] font-bold uppercase tracking-widest">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="text-emerald-400"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+              Locked (Review Only)
+            </div>
+          ) : null}
         </div>
         
-        <div className="flex items-center gap-4">
-           <button title="Reset" onClick={() => setCode(initialCode)} className="text-slate-500 hover:text-white transition-colors">
-             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/></svg>
-           </button>
+        <div className="flex items-center gap-3">
+          {!readOnly && (
+             <button title="Reset code" onClick={() => setCode(initialCode)} className="p-2 bg-white/5 hover:bg-white/10 border border-white/5 rounded-xl text-slate-400 hover:text-white transition-colors">
+               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/></svg>
+             </button>
+          )}
         </div>
       </div>
 
       <div className="flex-1 relative overflow-hidden">
-        <div className="absolute left-0 top-0 bottom-0 w-12 bg-[#1a1a1a] border-r border-white/5 flex flex-col items-center pt-8 text-[11px] text-slate-600 font-mono select-none">
+        <div className="absolute left-0 top-0 bottom-0 w-12 bg-[#121212] border-r border-white/5 flex flex-col items-center pt-8 text-[11px] text-slate-600 font-mono select-none">
           {Array.from({length: 80}).map((_,i) => <div key={i} className="h-[24px] leading-[24px]">{i+1}</div>)}
         </div>
         
@@ -205,11 +261,12 @@ builtins.input = mock_in
             <textarea 
               ref={textareaRef} 
               value={code} 
-              onChange={e => { setCode(e.target.value); onCodeChange?.(e.target.value); }}
+              onChange={e => { if (!readOnly) { setCode(e.target.value); onCodeChange?.(e.target.value); } }}
               onScroll={syncScroll} 
               spellCheck={false}
               style={editorStyles}
-              className="absolute inset-0 w-full h-full bg-transparent text-transparent caret-white focus:outline-none resize-none m-0 border-none scrollbar-thin scrollbar-thumb-white/10 overflow-auto" 
+              readOnly={readOnly}
+              className={`absolute inset-0 w-full h-full bg-transparent text-transparent focus:outline-none resize-none m-0 border-none scrollbar-thin scrollbar-thumb-white/10 overflow-auto ${readOnly ? 'caret-transparent cursor-not-allowed' : 'caret-white'}`}
             />
         </div>
       </div>
@@ -281,22 +338,30 @@ builtins.input = mock_in
                             </div>
                             <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">Hidden Test Case</p>
                             <div className={`inline-block px-4 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-[0.2em] ${currentResult.status === 'passed' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-red-500/20 text-red-400'}`}>
-                               Status: {currentResult.status === 'passed' ? 'Passed' : 'Failed'}
+                                Status: {currentResult.status === 'passed' ? 'Passed' : 'Failed'}
                             </div>
                           </div>
                         ) : (
                           <>
+                            {currentResult.input && (
+                              <div className="col-span-2 space-y-3">
+                                <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Input</p>
+                                <pre className="p-4 rounded-xl text-xs code-font bg-[#1a1a1a] border border-white/5 text-slate-300 min-h-[40px] whitespace-pre-wrap">
+                                  {currentResult.input}
+                                </pre>
+                              </div>
+                            )}
                             <div className="space-y-3">
                               <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Actual Output</p>
-                              <pre className={`p-4 rounded-xl text-xs code-font bg-[#1a1a1a] border border-white/5 min-h-[60px] ${currentResult.status === 'passed' ? 'text-emerald-400' : 'text-red-400'}`}>
+                              <pre className={`p-4 rounded-xl text-xs code-font bg-[#1a1a1a] border border-white/5 min-h-[60px] whitespace-pre-wrap ${currentResult.status === 'passed' ? 'text-emerald-400' : 'text-red-400'}`}>
                                 {currentResult.actualOutput || currentResult.error || '(no output)'}
                               </pre>
                             </div>
                             {currentResult.id !== 'custom' && (
                                <div className="space-y-3">
                                 <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Expected Output</p>
-                                <pre className="p-4 rounded-xl text-xs code-font bg-[#1a1a1a] border border-white/5 text-emerald-500/70 min-h-[60px]">
-                                  {testCases[selectedCaseIdx]?.expectedOutput}
+                                <pre className="p-4 rounded-xl text-xs code-font bg-[#1a1a1a] border border-white/5 text-emerald-500/70 min-h-[60px] whitespace-pre-wrap">
+                                  {currentResult.expectedOutput || '(no output)'}
                                 </pre>
                               </div>
                             )}

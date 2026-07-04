@@ -136,7 +136,7 @@ const LabHub: React.FC<LabHubProps> = ({ user, labs, onSelectLab, onSelectAssess
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
           {activeTab === 'labs' ? (
             filteredLabs.map(lab => {
-              const isCompleted = submissions.some(s => s.labId === lab.id && s.status === 'graded');
+              const isCompleted = submissions.some(s => s.labId === lab.id && (s.status === 'graded' || s.status === 'submitted'));
               return (
                 <div 
                   key={lab.id} 

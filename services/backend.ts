@@ -80,31 +80,41 @@ export const BackendService = {
   },
 
   onAuth(callback: (user: User | null) => void) {
-    return onAuthStateChanged(auth, async (fbUser) => {
+    let unsubDoc: (() => void) | null = null;
+    const unsubAuth = onAuthStateChanged(auth, async (fbUser) => {
+      if (unsubDoc) {
+        unsubDoc();
+        unsubDoc = null;
+      }
       if (fbUser) {
         try {
           const userDocRef = doc(db, "users", fbUser.uid);
-          const userDoc = await getDoc(userDocRef);
-          
-          if (userDoc.exists()) {
-            const userData = userDoc.data() as User;
-            const normalized: User = {
+          unsubDoc = onSnapshot(userDocRef, (snap) => {
+            if (snap.exists()) {
+              const userData = snap.data() as User;
+              const normalized: User = {
                 ...userData,
                 id: fbUser.uid,
                 grades: userData.grades || [],
                 points: userData.points || 0,
                 streak: userData.streak || 0,
                 isFirstLogin: userData.isFirstLogin ?? false
-            };
-            localStorage.setItem('ti_moodle_user', JSON.stringify(normalized));
-            callback(normalized);
-          } else if (fbUser.email?.startsWith('admin')) {
-            const admin = await this.repairAdminIdentity(fbUser);
-            localStorage.setItem('ti_moodle_user', JSON.stringify(admin));
-            callback(admin);
-          } else {
+              };
+              localStorage.setItem('ti_moodle_user', JSON.stringify(normalized));
+              callback(normalized);
+            } else if (fbUser.email?.startsWith('admin')) {
+              this.repairAdminIdentity(fbUser).then((admin) => {
+                callback(admin);
+              }).catch(() => {
+                callback(null);
+              });
+            } else {
+              callback(null);
+            }
+          }, (err) => {
+            console.error("Firestore user doc snap error:", err);
             callback(null);
-          }
+          });
         } catch (e) {
           callback(null);
         }
@@ -113,6 +123,11 @@ export const BackendService = {
         callback(null);
       }
     });
+
+    return () => {
+      unsubAuth();
+      if (unsubDoc) unsubDoc();
+    };
   },
 
   async login(username: string, password: string): Promise<User> {
@@ -286,11 +301,39 @@ export const BackendService = {
     await batch.commit();
   },
 
-  async submitLab(submission: Submission): Promise<void> {
+  async submitLab(submission: Submission, xpAward: number = 100): Promise<void> {
     const subId = `${submission.userId}_${submission.labId}`;
-    await setDoc(doc(db, "submissions", subId), {
+    const subRef = doc(db, "submissions", subId);
+    const existingDoc = await getDoc(subRef);
+    const wasAlreadyGraded = existingDoc.exists() && existingDoc.data()?.status === 'graded';
+
+    await setDoc(subRef, {
       ...submission,
       submittedAt: Date.now()
+    });
+
+    if (!wasAlreadyGraded) {
+      const userRef = doc(db, "users", submission.userId);
+      await updateDoc(userRef, {
+        points: increment(xpAward)
+      });
+    }
+  },
+
+  listenToStudents(callback: (users: User[]) => void) {
+    const q = query(collection(db, "users"), where("role", "==", "student"));
+    return onSnapshot(q, (snap) => {
+      const students = snap.docs.map(d => ({
+        ...d.data(),
+        id: d.id,
+        grades: d.data().grades || [],
+        points: d.data().points || 0,
+        streak: d.data().streak || 0
+      } as User));
+      callback(students);
+    }, (err) => {
+      console.warn("Listen to students failed:", err);
+      callback([]);
     });
   },
 

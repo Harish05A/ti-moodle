@@ -20,7 +20,6 @@ export interface User {
   avatar?: string;
   // Enhanced Academic Bio Fields
   dob?: string;
-  bloodGroup?: string;
   parentName?: string;
   phone?: string;
   address?: string;

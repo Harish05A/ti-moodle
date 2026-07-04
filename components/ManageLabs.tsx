@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { LabExperiment, Difficulty, TestCase, User, Classroom } from '../types';
 import { BackendService } from '../services/backend';
+import { Lock, Eye, Trash2 } from 'lucide-react';
 
 interface ManageLabsProps {
   labs: LabExperiment[];
@@ -125,6 +126,11 @@ const ManageLabs: React.FC<ManageLabsProps> = ({ labs = [], onAddLab, onDeleteLa
   const updateTestCase = (index: number, field: keyof TestCase, value: any) => {
     const updated = [...(newLab.testCases || [])];
     updated[index] = { ...updated[index], [field]: value };
+    setNewLab({ ...newLab, testCases: updated });
+  };
+
+  const removeTestCase = (index: number) => {
+    const updated = (newLab.testCases || []).filter((_, i) => i !== index);
     setNewLab({ ...newLab, testCases: updated });
   };
 
@@ -305,22 +311,64 @@ const ManageLabs: React.FC<ManageLabsProps> = ({ labs = [], onAddLab, onDeleteLa
                   </h3>
                   <button type="button" onClick={addTestCase} className="text-indigo-600 text-[10px] font-black uppercase tracking-widest">Add Case</button>
                 </div>
-                <div className="space-y-3 max-h-[250px] overflow-y-auto pr-2 scrollbar-thin">
+                <div className="space-y-3 max-h-[350px] overflow-y-auto pr-2 scrollbar-thin">
                     {newLab.testCases?.map((tc, i) => (
-                      <div key={tc.id} className="bg-slate-50 dark:bg-slate-800 p-4 rounded-xl border border-slate-200 dark:border-slate-700 space-y-3">
+                      <div key={tc.id} className="bg-slate-50 dark:bg-slate-800 p-4 rounded-xl border border-slate-200 dark:border-slate-700 space-y-3 relative group animate-in fade-in duration-200">
+                         <div className="flex justify-between items-center pb-2 border-b border-slate-200/50 dark:border-slate-700/50">
+                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Case #{i + 1}</span>
+                            <div className="flex items-center gap-3">
+                               <button
+                                 type="button"
+                                 onClick={() => updateTestCase(i, 'isHidden', !tc.isHidden)}
+                                 className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-wider border transition-all ${
+                                    tc.isHidden 
+                                       ? 'bg-amber-500/10 text-amber-500 border-amber-500/20' 
+                                       : 'bg-white dark:bg-slate-900 text-slate-400 dark:text-slate-500 border-slate-200 dark:border-slate-700 hover:border-indigo-400'
+                                 }`}
+                               >
+                                 {tc.isHidden ? (
+                                    <>
+                                       <Lock className="w-3 h-3 text-amber-500" />
+                                       Hidden Case
+                                    </>
+                                 ) : (
+                                    <>
+                                       <Eye className="w-3 h-3" />
+                                       Public Case
+                                    </>
+                                 )}
+                               </button>
+                               {(newLab.testCases || []).length > 1 && (
+                                  <button
+                                    type="button"
+                                    onClick={() => removeTestCase(i)}
+                                    className="p-1 hover:text-red-500 text-slate-400 transition-colors"
+                                    title="Remove Case"
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                  </button>
+                                )}
+                            </div>
+                         </div>
                          <div className="grid grid-cols-2 gap-4">
-                            <input 
-                              placeholder="Standard Input"
-                              className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-xs code-font dark:text-white"
-                              value={tc.input}
-                              onChange={e => updateTestCase(i, 'input', e.target.value)}
-                            />
-                            <input 
-                              placeholder="Expected Output"
-                              className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-xs code-font text-emerald-600"
-                              value={tc.expectedOutput}
-                              onChange={e => updateTestCase(i, 'expectedOutput', e.target.value)}
-                            />
+                            <div className="space-y-1">
+                               <label className="text-[8px] font-black text-slate-400 uppercase tracking-wider ml-1">Standard Input</label>
+                               <input 
+                                 placeholder="e.g. 5"
+                                 className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-xs code-font dark:text-white"
+                                 value={tc.input}
+                                 onChange={e => updateTestCase(i, 'input', e.target.value)}
+                               />
+                            </div>
+                            <div className="space-y-1">
+                               <label className="text-[8px] font-black text-slate-400 uppercase tracking-wider ml-1">Expected Output</label>
+                               <input 
+                                 placeholder="e.g. 25"
+                                 className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-xs code-font text-emerald-600"
+                                 value={tc.expectedOutput}
+                                 onChange={e => updateTestCase(i, 'expectedOutput', e.target.value)}
+                               />
+                            </div>
                          </div>
                       </div>
                     ))}

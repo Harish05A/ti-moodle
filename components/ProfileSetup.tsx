@@ -26,7 +26,6 @@ const ProfileSetup: React.FC<ProfileSetupProps> = ({ user, onComplete }) => {
   const [profileData, setProfileData] = useState({
     bio: '',
     dob: '',
-    bloodGroup: '',
     parentName: '',
     phone: '',
     address: '',
@@ -44,7 +43,6 @@ const ProfileSetup: React.FC<ProfileSetupProps> = ({ user, onComplete }) => {
       const payload = { 
         bio: profileData.bio,
         dob: profileData.dob,
-        bloodGroup: profileData.bloodGroup,
         parentName: profileData.parentName,
         phone: profileData.phone,
         address: profileData.address,
@@ -116,15 +114,9 @@ const ProfileSetup: React.FC<ProfileSetupProps> = ({ user, onComplete }) => {
 
           {step === 2 && (
             <div className="space-y-6 animate-in slide-in-from-right-10">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-2">Date of Birth</label>
-                  <input type="date" className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl px-4 py-3 outline-none dark:text-white" value={profileData.dob} onChange={e => setProfileData({...profileData, dob: e.target.value})} />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-2">Blood Group</label>
-                  <input placeholder="e.g. O+" className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl px-4 py-3 outline-none dark:text-white" value={profileData.bloodGroup} onChange={e => setProfileData({...profileData, bloodGroup: e.target.value})} />
-                </div>
+              <div className="space-y-2">
+                <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-2">Date of Birth</label>
+                <input type="date" className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl px-4 py-3 outline-none dark:text-white" value={profileData.dob} onChange={e => setProfileData({...profileData, dob: e.target.value})} />
               </div>
               <div className="space-y-2">
                 <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-2">Parent/Guardian Name</label>

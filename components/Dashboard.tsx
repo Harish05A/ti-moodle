@@ -7,6 +7,7 @@ interface DashboardProps {
   onSelectLab: (lab: LabExperiment) => void;
   labs: LabExperiment[];
   setView?: (view: any) => void;
+  user: User;
 }
 
 const MOTIVATIONAL_QUOTES = [
@@ -17,36 +18,34 @@ const MOTIVATIONAL_QUOTES = [
   "Every great developer was once a beginner who didn't give up."
 ];
 
-const Dashboard: React.FC<DashboardProps> = ({ onSelectLab, labs = [], setView }) => {
+const Dashboard: React.FC<DashboardProps> = ({ onSelectLab, labs = [], setView, user }) => {
   const [submissions, setSubmissions] = useState<Submission[]>([]);
   const [classrooms, setClassrooms] = useState<Classroom[]>([]);
   const [allUsers, setAllUsers] = useState<User[]>([]);
-  const [user, setUser] = useState<User | null>(null);
   const [quote] = useState(() => MOTIVATIONAL_QUOTES[Math.floor(Math.random() * MOTIVATIONAL_QUOTES.length)]);
 
   useEffect(() => {
-    const savedUser = localStorage.getItem('ti_moodle_user');
-    if (savedUser) {
-      const u = JSON.parse(savedUser);
-      setUser(u);
-      
+    if (user) {
       const fetchData = async () => {
-        const [cls, users] = await Promise.all([
-          BackendService.getClassrooms(u),
-          BackendService.getAllUsers()
-        ]);
-        
+        const cls = await BackendService.getClassrooms(user);
         setClassrooms(cls || []);
-        setAllUsers(users || []);
       };
       fetchData();
 
-      const unsub = BackendService.listenToSubmissions(u.role, u.id, undefined, (subs) => {
+      const unsubSubmissions = BackendService.listenToSubmissions(user.role, user.id, undefined, (subs) => {
           setSubmissions(subs || []);
       });
-      return () => unsub();
+
+      const unsubStudents = BackendService.listenToStudents((students) => {
+          setAllUsers(students);
+      });
+
+      return () => {
+          unsubSubmissions();
+          unsubStudents();
+      };
     }
-  }, []);
+  }, [user.id, user.role]);
 
   const formatDeadline = (ts?: number) => {
     if (!ts) return null;
@@ -66,6 +65,14 @@ const Dashboard: React.FC<DashboardProps> = ({ onSelectLab, labs = [], setView }
   };
 
   const renderStudentDashboard = () => {
+    const getStudentTier = (points: number) => {
+      if (points < 100) return { title: "Code Novice ⚡", color: "bg-indigo-500/20 text-indigo-200 border-indigo-500/30" };
+      if (points < 300) return { title: "Script Weaver 🌀", color: "bg-teal-500/20 text-teal-200 border-teal-500/30" };
+      if (points < 600) return { title: "Syntax Alchemist 🧪", color: "bg-amber-500/20 text-amber-200 border-amber-500/30" };
+      return { title: "Python Mastermind 🧠", color: "bg-purple-500/20 text-purple-200 border-purple-500/30" };
+    };
+    const tier = getStudentTier(user?.points || 0);
+
     const filteredLabs = labs.filter(lab => {
         if (lab.status !== 'published') return false;
         return lab.targetGrades?.some(g => user?.grades?.includes(g));
@@ -80,7 +87,12 @@ const Dashboard: React.FC<DashboardProps> = ({ onSelectLab, labs = [], setView }
             <div className="lg:col-span-2 bg-gradient-to-br from-indigo-600 to-indigo-800 rounded-[2.5rem] md:rounded-[3rem] p-8 md:p-10 text-white shadow-2xl relative overflow-hidden group transition-all">
                 <div className="relative z-10">
                     <p className="text-indigo-100 font-black uppercase tracking-[0.3em] text-[8px] md:text-[10px] mb-3 md:mb-4">Welcome back</p>
-                    <h1 className="text-3xl md:text-5xl font-black tracking-tighter mb-4 leading-tight">Hello, {user?.name.split(' ')[0]}</h1>
+                    <div className="flex flex-wrap items-center gap-3 mb-4">
+                        <h1 className="text-3xl md:text-5xl font-black tracking-tighter leading-tight">Hello, {user?.name.split(' ')[0]}</h1>
+                        <span className={`px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest border ${tier.color}`}>
+                            {tier.title}
+                        </span>
+                    </div>
                     <p className="text-indigo-100/80 text-xs md:text-sm font-medium max-w-md leading-relaxed italic">"{quote}"</p>
                     <div className="mt-6 md:mt-8 flex flex-wrap gap-4 md:gap-6 items-center">
                         <div className="flex items-center gap-3 px-4 md:px-6 py-3 md:py-4 bg-white/10 backdrop-blur-md rounded-2xl border border-white/10">

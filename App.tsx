@@ -153,7 +153,6 @@ const App: React.FC = () => {
         name: editUser.name,
         bio: editUser.bio,
         dob: editUser.dob,
-        bloodGroup: editUser.bloodGroup,
         parentName: editUser.parentName,
         phone: editUser.phone,
         address: editUser.address
@@ -193,7 +192,7 @@ const App: React.FC = () => {
   const renderContent = () => {
     switch (currentView) {
       case 'dashboard':
-        return <Dashboard onSelectLab={(l) => handleSelectLab(l)} labs={labs} setView={handleViewChange} />;
+        return <Dashboard user={user} onSelectLab={(l) => handleSelectLab(l)} labs={labs} setView={handleViewChange} />;
       case 'lab-hub':
         return <LabHub user={user} labs={labs} onSelectLab={handleSelectLab} onSelectAssessment={handleSelectAssessment} />;
       case 'compiler':
@@ -254,23 +253,13 @@ const App: React.FC = () => {
                           <p className="text-sm font-bold text-slate-900 dark:text-white pl-1">{user.name}</p>
                         )}
                       </div>
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="group">
-                          <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1 mb-1 block">Date of Birth</label>
-                          {isEditingProfile ? (
-                            <input type="date" className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2.5 text-sm dark:text-white" value={editUser.dob || ''} onChange={e => setEditUser({...editUser, dob: e.target.value})} />
-                          ) : (
-                            <p className="text-sm font-bold text-slate-900 dark:text-white pl-1">{user.dob || 'Not Set'}</p>
-                          )}
-                        </div>
-                        <div className="group">
-                          <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1 mb-1 block">Blood Group</label>
-                          {isEditingProfile ? (
-                            <input className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2.5 text-sm dark:text-white" value={editUser.bloodGroup || ''} onChange={e => setEditUser({...editUser, bloodGroup: e.target.value})} />
-                          ) : (
-                            <p className="text-sm font-bold text-slate-900 dark:text-white pl-1">{user.bloodGroup || 'Not Set'}</p>
-                          )}
-                        </div>
+                      <div className="group">
+                        <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1 mb-1 block">Date of Birth</label>
+                        {isEditingProfile ? (
+                          <input type="date" className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2.5 text-sm dark:text-white" value={editUser.dob || ''} onChange={e => setEditUser({...editUser, dob: e.target.value})} />
+                        ) : (
+                          <p className="text-sm font-bold text-slate-900 dark:text-white pl-1">{user.dob || 'Not Set'}</p>
+                        )}
                       </div>
                       <div className="group">
                         <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1 mb-1 block">Guardian Name</label>
@@ -329,7 +318,7 @@ const App: React.FC = () => {
             </div>
         );
       default:
-        return <Dashboard onSelectLab={(l) => handleSelectLab(l)} labs={labs} setView={handleViewChange} />;
+        return <Dashboard user={user} onSelectLab={(l) => handleSelectLab(l)} labs={labs} setView={handleViewChange} />;
     }
   };
 
@@ -367,7 +356,9 @@ const App: React.FC = () => {
 
       <main className={`flex-1 min-w-0 min-h-screen transition-all duration-300 ${user ? 'lg:ml-64' : ''}`}>
         <div className={`p-6 md:p-10 ${user ? 'pt-24 lg:pt-10' : ''}`}>
-          {renderContent()}
+          <div key={currentView} className="animate-page-fade">
+            {renderContent()}
+          </div>
         </div>
       </main>
     </div>

@@ -1,5 +1,6 @@
 {
   "name": "TI Moodle - Virtual Coding Classroom",
   "description": "A comprehensive virtual lab platform for higher secondary school students to learn computer science, practice coding, and complete lab experiments.",
-  "requestFramePermissions": []
+  "requestFramePermissions": [],
+  "majorCapabilities": []
 }

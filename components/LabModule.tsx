@@ -113,7 +113,7 @@ const LabModule: React.FC<LabModuleProps> = ({ lab, user, onBack, classId }) => 
           </div>
 
           <div className="space-y-6 md:space-y-8">
-            <div className="leading-relaxed text-slate-300 text-sm md:text-base">
+            <div className="leading-relaxed text-slate-300 text-sm md:text-base whitespace-pre-line">
               {lab.description}
             </div>
 

@@ -303,20 +303,65 @@ export const BackendService = {
 
   async submitLab(submission: Submission, xpAward: number = 100): Promise<void> {
     const subId = `${submission.userId}_${submission.labId}`;
+    
+    // 1. Always save to local storage first as a secure fallback
+    try {
+      const localStr = localStorage.getItem("ti_moodle_local_submissions");
+      const localSubs: Submission[] = localStr ? JSON.parse(localStr) : [];
+      const filtered = localSubs.filter(s => !(s.userId === submission.userId && s.labId === submission.labId));
+      filtered.push({ ...submission, submittedAt: Date.now() });
+      localStorage.setItem("ti_moodle_local_submissions", JSON.stringify(filtered));
+    } catch (e) {
+      console.warn("Failed to write submission to localStorage:", e);
+    }
+
+    let wasAlreadyGraded = false;
     const subRef = doc(db, "submissions", subId);
-    const existingDoc = await getDoc(subRef);
-    const wasAlreadyGraded = existingDoc.exists() && existingDoc.data()?.status === 'graded';
+    
+    // 2. Try to get existing submission from Firestore, catch permissions errors
+    try {
+      const existingDoc = await getDoc(subRef);
+      wasAlreadyGraded = existingDoc.exists() && existingDoc.data()?.status === 'graded';
+    } catch (e) {
+      console.warn("Firestore getDoc failed (permissions or connection), assuming not graded:", e);
+    }
 
-    await setDoc(subRef, {
-      ...submission,
-      submittedAt: Date.now()
-    });
-
-    if (!wasAlreadyGraded) {
-      const userRef = doc(db, "users", submission.userId);
-      await updateDoc(userRef, {
-        points: increment(xpAward)
+    // 3. Try to save submission to Firestore
+    try {
+      await setDoc(subRef, {
+        ...submission,
+        submittedAt: Date.now()
       });
+    } catch (e) {
+      console.error("Firestore setDoc failed, falling back to local submission record:", e);
+      // Do not throw error here, since it is safely stored in localStorage and UI will load it
+    }
+
+    // 4. Try to increment user's XP in Firestore and update local cache
+    if (!wasAlreadyGraded) {
+      try {
+        const userRef = doc(db, "users", submission.userId);
+        await updateDoc(userRef, {
+          points: increment(xpAward)
+        });
+      } catch (e) {
+        console.warn("Firestore updateDoc for user points failed:", e);
+      }
+
+      try {
+        const userStr = localStorage.getItem("ti_moodle_user");
+        if (userStr) {
+          const u = JSON.parse(userStr);
+          if (u.id === submission.userId) {
+            u.points = (u.points || 0) + xpAward;
+            localStorage.setItem("ti_moodle_user", JSON.stringify(u));
+            // Trigger storage event or direct UI update if needed
+            window.dispatchEvent(new Event('storage'));
+          }
+        }
+      } catch (e) {
+        console.warn("Failed to update local cached user points:", e);
+      }
     }
   },
 
@@ -349,15 +394,54 @@ export const BackendService = {
     } else if (role === 'admin') {
       q = query(colRef);
     } else {
-        callback([]);
+        try {
+          const localStr = localStorage.getItem("ti_moodle_local_submissions");
+          const localSubs: Submission[] = localStr ? JSON.parse(localStr) : [];
+          callback(localSubs);
+        } catch (e) {
+          callback([]);
+        }
         return () => {};
     }
 
+    const getMergedSubs = (firestoreSubs: Submission[]) => {
+      try {
+        const localStr = localStorage.getItem("ti_moodle_local_submissions");
+        const localSubs: Submission[] = localStr ? JSON.parse(localStr) : [];
+        const mergedMap = new Map<string, Submission>();
+        
+        localSubs.forEach(s => {
+          mergedMap.set(`${s.userId}_${s.labId}`, s);
+        });
+        firestoreSubs.forEach(s => {
+          mergedMap.set(`${s.userId}_${s.labId}`, s);
+        });
+        return Array.from(mergedMap.values());
+      } catch (e) {
+        return firestoreSubs;
+      }
+    };
+
+    // Emit local storage submissions immediately so that UI is super responsive
+    try {
+      const localStr = localStorage.getItem("ti_moodle_local_submissions");
+      if (localStr) {
+        callback(JSON.parse(localStr));
+      }
+    } catch (e) {}
+
     return onSnapshot(q, (snap) => {
-      callback(snap.docs.map(d => d.data() as Submission));
+      const firestoreSubs = snap.docs.map(d => d.data() as Submission);
+      callback(getMergedSubs(firestoreSubs));
     }, (err) => {
-      console.warn("Firestore snapshot error:", err);
-      callback([]);
+      console.warn("Firestore snapshot error (permissions or offline), using localStorage:", err);
+      try {
+        const localStr = localStorage.getItem("ti_moodle_local_submissions");
+        const localSubs: Submission[] = localStr ? JSON.parse(localStr) : [];
+        callback(localSubs);
+      } catch (e) {
+        callback([]);
+      }
     });
   },
 

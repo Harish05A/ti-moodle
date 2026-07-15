@@ -353,18 +353,20 @@ const ManageLabs: React.FC<ManageLabsProps> = ({ labs = [], onAddLab, onDeleteLa
                          <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-1">
                                <label className="text-[8px] font-black text-slate-400 uppercase tracking-wider ml-1">Standard Input</label>
-                               <input 
-                                 placeholder="e.g. 5"
-                                 className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-xs code-font dark:text-white"
+                               <textarea 
+                                 placeholder="e.g. 5&#10;10"
+                                 rows={3}
+                                 className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-xs code-font dark:text-white resize-y"
                                  value={tc.input}
                                  onChange={e => updateTestCase(i, 'input', e.target.value)}
                                />
                             </div>
                             <div className="space-y-1">
                                <label className="text-[8px] font-black text-slate-400 uppercase tracking-wider ml-1">Expected Output</label>
-                               <input 
-                                 placeholder="e.g. 25"
-                                 className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-xs code-font text-emerald-600"
+                               <textarea 
+                                 placeholder="e.g. 25&#10;100"
+                                 rows={3}
+                                 className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-xs code-font text-emerald-600 resize-y"
                                  value={tc.expectedOutput}
                                  onChange={e => updateTestCase(i, 'expectedOutput', e.target.value)}
                                />

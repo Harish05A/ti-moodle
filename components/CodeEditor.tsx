@@ -113,11 +113,11 @@ const CodeEditor: React.FC<CodeEditorProps> = ({ initialCode, onCodeChange, test
 
     for (const tc of casesToRun) {
       try {
-        pyodide.globals.set("_input_val", tc.input);
+        pyodide.globals.set("_input_val", tc.input || "");
         await pyodide.runPythonAsync(`
 import sys, io, builtins
 sys.stdout = io.StringIO()
-_lines = str(_input_val).split('\\n')
+_lines = [line.replace('\\r', '') for line in str(_input_val).split('\\n')]
 _idx = 0
 def mock_in(p=""):
     global _idx
@@ -139,7 +139,7 @@ builtins.input = mock_in
             isHidden: false 
           });
         } else {
-          const passed = actual === tc.expectedOutput.trim();
+          const passed = actual.trim().toLowerCase() === (tc.expectedOutput || "").trim().toLowerCase();
           results.push({ 
             id: tc.id, 
             status: passed ? 'passed' : 'failed', 
@@ -307,7 +307,7 @@ builtins.input = mock_in
                 </p>
                 <textarea 
                   value={customInput} onChange={e => setCustomInput(e.target.value)}
-                  className="w-full h-24 bg-[#1a1a1a] border border-white/5 rounded-lg p-4 code-font text-xs text-slate-300 focus:outline-none focus:border-emerald-500/50 transition-all resize-none"
+                  className="w-full h-24 min-h-[60px] bg-[#1a1a1a] border border-white/5 rounded-lg p-4 code-font text-xs text-slate-300 focus:outline-none focus:border-emerald-500/50 transition-all resize-y"
                   placeholder="Enter inputs here..." />
               </div>
             )}

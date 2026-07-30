@@ -72,7 +72,6 @@ const PythonCompiler: React.FC = () => {
 
         await py.runPythonAsync(`
 import ast
-import inspect
 import builtins
 import js
 
@@ -81,28 +80,11 @@ async def __async_input(prompt=""):
     res = await js.window.__get_terminal_input(p)
     return str(res) if res is not None else ""
 
-async def __auto_await(val):
-    if inspect.iscoroutine(val):
-        return await val
-    return val
-
 builtins.input = __async_input
 
 class TerminalInputTransformer(ast.NodeTransformer):
-    def visit_FunctionDef(self, node):
-        self.generic_visit(node)
-        return ast.AsyncFunctionDef(
-            name=node.name,
-            args=node.args,
-            body=node.body,
-            decorator_list=node.decorator_list,
-            returns=node.returns,
-            type_comment=getattr(node, 'type_comment', None)
-        )
-
-    def visit_AsyncFunctionDef(self, node):
-        self.generic_visit(node)
-        return node
+    def __init__(self):
+        self.async_funcs = set()
 
     def visit_Call(self, node):
         self.generic_visit(node)
@@ -122,26 +104,41 @@ class TerminalInputTransformer(ast.NodeTransformer):
                 )
             )
 
-        if isinstance(node.func, ast.Name) and node.func.id in ('__auto_await', '__async_input', 'print', 'range', 'len', 'int', 'float', 'str', 'list', 'dict', 'set', 'tuple', 'type', 'isinstance', 'abs', 'min', 'max', 'sum', 'open', 'round', 'enumerate', 'zip', 'sorted', 'reversed', 'map', 'filter'):
-            return node
+        if isinstance(node.func, ast.Name) and node.func.id in self.async_funcs:
+            return ast.Await(value=node)
 
-        return ast.Await(
-            value=ast.Call(
-                func=ast.Name(id='__auto_await', ctx=ast.Load()),
-                args=[node],
-                keywords=[]
+        return node
+
+    def visit_FunctionDef(self, node):
+        self.generic_visit(node)
+        has_await = any(isinstance(n, ast.Await) for n in ast.walk(node))
+        if has_await:
+            self.async_funcs.add(node.name)
+            return ast.AsyncFunctionDef(
+                name=node.name,
+                args=node.args,
+                body=node.body,
+                decorator_list=node.decorator_list,
+                returns=node.returns,
+                type_comment=getattr(node, 'type_comment', None)
             )
-        )
+        return node
 
 def __transform_code(user_code_str):
+    if not user_code_str:
+        return ""
+    sanitized = user_code_str.replace('\xa0', ' ').replace('\r\n', '\n').replace('\r', '\n')
+    if 'input' not in sanitized:
+        return sanitized
     try:
-        parsed = ast.parse(user_code_str)
+        parsed = ast.parse(sanitized)
         transformer = TerminalInputTransformer()
-        transformed = transformer.visit(parsed)
-        ast.fix_missing_locations(transformed)
-        return ast.unparse(transformed)
+        for _ in range(3):
+            parsed = transformer.visit(parsed)
+        ast.fix_missing_locations(parsed)
+        return ast.unparse(parsed)
     except Exception:
-        return user_code_str
+        return sanitized
         `);
 
         setPyodide(py);
@@ -217,8 +214,9 @@ def __transform_code(user_code_str):
         });
       };
 
+      const cleanCode = (code || '').replace(/\u00a0/g, ' ').replace(/\r\n/g, '\n');
       const transformFunc = pyodide.globals.get("__transform_code");
-      const transformedCode = transformFunc ? transformFunc(code) : code;
+      const transformedCode = transformFunc ? transformFunc(cleanCode) : cleanCode;
 
       await pyodide.runPythonAsync(transformedCode);
 
@@ -250,8 +248,9 @@ def __transform_code(user_code_str):
         });
       };
 
+      const cleanCmd = cmd.replace(/\u00a0/g, ' ').replace(/\r\n/g, '\n');
       const transformFunc = pyodide.globals.get("__transform_code");
-      const transformedCmd = transformFunc ? transformFunc(cmd) : cmd;
+      const transformedCmd = transformFunc ? transformFunc(cleanCmd) : cleanCmd;
 
       const result = await pyodide.runPythonAsync(transformedCmd);
 

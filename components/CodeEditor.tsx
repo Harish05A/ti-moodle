@@ -136,7 +136,8 @@ def mock_in(p=""):
     return val
 builtins.input = mock_in
         `);
-        await pyodide.runPythonAsync(code);
+        const sanitizedCode = (code || '').replace(/\u00a0/g, ' ').replace(/\r\n/g, '\n');
+        await pyodide.runPythonAsync(sanitizedCode);
         const actual = pyodide.runPython("sys.stdout.getvalue()").trim();
         
         if (tc.id === 'custom') {

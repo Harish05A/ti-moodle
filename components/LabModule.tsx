@@ -97,9 +97,15 @@ const LabModule: React.FC<LabModuleProps> = ({ lab, user, onBack, classId }) => 
 
       <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
         {/* Question Panel */}
-        <div className="w-full lg:w-[40%] xl:w-[35%] border-b lg:border-b-0 lg:border-r border-white/10 overflow-y-auto bg-[#121212] p-6 md:p-8 scrollbar-thin scrollbar-thumb-white/10">
+        <div 
+          className="w-full lg:w-[40%] xl:w-[35%] border-b lg:border-b-0 lg:border-r border-white/10 overflow-y-auto bg-[#121212] p-6 md:p-8 scrollbar-thin scrollbar-thumb-white/10 select-none"
+          onCopy={(e) => e.preventDefault()}
+          onCut={(e) => e.preventDefault()}
+          onContextMenu={(e) => e.preventDefault()}
+          onDragStart={(e) => e.preventDefault()}
+        >
           <div className="mb-6 md:mb-8">
-            <h1 className="text-xl md:text-2xl font-bold text-white leading-tight">
+            <h1 className="text-xl md:text-2xl font-bold text-white leading-tight select-none">
               {lab.title}
             </h1>
             <div className="flex items-center gap-3 md:gap-4 mt-3 md:mt-4 text-[9px] md:text-[10px] font-bold">
@@ -112,14 +118,17 @@ const LabModule: React.FC<LabModuleProps> = ({ lab, user, onBack, classId }) => 
             </div>
           </div>
 
-          <div className="space-y-6 md:space-y-8">
-            <div className="leading-relaxed text-slate-300 text-sm md:text-base whitespace-pre-line">
+          <div className="space-y-6 md:space-y-8 select-none">
+            <div 
+              className="leading-relaxed text-slate-300 text-sm md:text-base whitespace-pre-line select-none"
+              onCopy={(e) => e.preventDefault()}
+            >
               {lab.description}
             </div>
 
-            <div className="space-y-4">
+            <div className="space-y-4 select-none">
               <h3 className="text-[9px] md:text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] border-b border-white/5 pb-2">Learning Objectives</h3>
-              <ul className="space-y-2 text-xs md:text-sm text-slate-400">
+              <ul className="space-y-2 text-xs md:text-sm text-slate-400 select-none">
                 {lab.learningObjectives?.map((obj, i) => (
                   <li key={i} className="flex gap-3">
                     <span className="text-indigo-500 font-black shrink-0">0{i+1}</span>

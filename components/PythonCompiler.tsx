@@ -51,6 +51,11 @@ const PythonCompiler: React.FC = () => {
   const terminalEndRef = useRef<HTMLDivElement>(null);
   const replInputRef = useRef<HTMLInputElement>(null);
 
+  const [activePrompt, setActivePrompt] = useState<string | null>(null);
+  const [activeInputValue, setActiveInputValue] = useState('');
+  const activeInputRef = useRef<HTMLInputElement>(null);
+  const inputResolverRef = useRef<((val: string) => void) | null>(null);
+
   useEffect(() => {
     async function init() {
       try {
@@ -65,6 +70,80 @@ const PythonCompiler: React.FC = () => {
           setTerminalHistory(prev => [...prev, { type: 'stderr', content: t }]);
         }});
 
+        await py.runPythonAsync(`
+import ast
+import inspect
+import builtins
+import js
+
+async def __async_input(prompt=""):
+    p = str(prompt) if prompt is not None else ""
+    res = await js.window.__get_terminal_input(p)
+    return str(res) if res is not None else ""
+
+async def __auto_await(val):
+    if inspect.iscoroutine(val):
+        return await val
+    return val
+
+builtins.input = __async_input
+
+class TerminalInputTransformer(ast.NodeTransformer):
+    def visit_FunctionDef(self, node):
+        self.generic_visit(node)
+        return ast.AsyncFunctionDef(
+            name=node.name,
+            args=node.args,
+            body=node.body,
+            decorator_list=node.decorator_list,
+            returns=node.returns,
+            type_comment=getattr(node, 'type_comment', None)
+        )
+
+    def visit_AsyncFunctionDef(self, node):
+        self.generic_visit(node)
+        return node
+
+    def visit_Call(self, node):
+        self.generic_visit(node)
+        
+        is_input = False
+        if isinstance(node.func, ast.Name) and node.func.id in ('input', 'custom_input', '__async_input'):
+            is_input = True
+        elif isinstance(node.func, ast.Attribute) and node.func.attr == 'input':
+            is_input = True
+
+        if is_input:
+            return ast.Await(
+                value=ast.Call(
+                    func=ast.Name(id='__async_input', ctx=ast.Load()),
+                    args=node.args,
+                    keywords=node.keywords
+                )
+            )
+
+        if isinstance(node.func, ast.Name) and node.func.id in ('__auto_await', '__async_input', 'print', 'range', 'len', 'int', 'float', 'str', 'list', 'dict', 'set', 'tuple', 'type', 'isinstance', 'abs', 'min', 'max', 'sum', 'open', 'round', 'enumerate', 'zip', 'sorted', 'reversed', 'map', 'filter'):
+            return node
+
+        return ast.Await(
+            value=ast.Call(
+                func=ast.Name(id='__auto_await', ctx=ast.Load()),
+                args=[node],
+                keywords=[]
+            )
+        )
+
+def __transform_code(user_code_str):
+    try:
+        parsed = ast.parse(user_code_str)
+        transformer = TerminalInputTransformer()
+        transformed = transformer.visit(parsed)
+        ast.fix_missing_locations(transformed)
+        return ast.unparse(transformed)
+    except Exception:
+        return user_code_str
+        `);
+
         setPyodide(py);
         setTerminalHistory([{ type: 'info', content: 'Python Runtime Initialized. Environment Ready.' }]);
       } catch (e) { console.error(e); }
@@ -73,13 +152,28 @@ const PythonCompiler: React.FC = () => {
   }, []);
 
   useEffect(() => {
+    if (activePrompt !== null && activeInputRef.current) {
+      activeInputRef.current.focus();
+    }
+  }, [activePrompt]);
+
+  useEffect(() => {
     if (terminalEndRef.current) {
       terminalEndRef.current.scrollIntoView({ behavior: 'smooth' });
     }
-    if (mode === 'repl' && replInputRef.current) {
+    if (mode === 'repl' && replInputRef.current && activePrompt === null) {
       replInputRef.current.focus();
     }
-  }, [terminalHistory, mode]);
+  }, [terminalHistory, mode, activePrompt]);
+
+  const cancelPendingInput = () => {
+    if (inputResolverRef.current) {
+      inputResolverRef.current("");
+      inputResolverRef.current = null;
+    }
+    setActivePrompt(null);
+    setActiveInputValue('');
+  };
 
   const syncScroll = () => {
     if (textareaRef.current && highlightRef.current) {
@@ -88,38 +182,52 @@ const PythonCompiler: React.FC = () => {
     }
   };
 
+  const handleActiveInputSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const val = activeInputValue;
+    const prompt = activePrompt || '';
+
+    setTerminalHistory(prev => [
+      ...prev,
+      { type: 'stdin', content: `${prompt}${val}\n` }
+    ]);
+
+    setActivePrompt(null);
+    setActiveInputValue('');
+
+    if (inputResolverRef.current) {
+      const resolve = inputResolverRef.current;
+      inputResolverRef.current = null;
+      resolve(val);
+    }
+  };
+
   const runScript = async () => {
     if (!pyodide || isExecuting) return;
+    cancelPendingInput();
     setIsExecuting(true);
-    setTerminalHistory(prev => [...prev, { type: 'info', content: '\n[Executing Script in IDLE Shell...]' }]);
+    setTerminalHistory(prev => [...prev, { type: 'info', content: '\n[Executing Script in Python IDLE...]' }]);
     
     try {
-      (window as any).__python_prompt_input = (promptText: string) => {
-        const strPrompt = promptText ? String(promptText) : '';
-        const res = window.prompt(strPrompt || 'Python Input:');
-        const inputVal = res !== null ? res : '';
-        setTerminalHistory(prev => [
-          ...prev, 
-          { type: 'stdin', content: `${strPrompt}${inputVal}\n` }
-        ]);
-        return inputVal;
+      (window as any).__get_terminal_input = (promptText: string) => {
+        return new Promise<string>((resolve) => {
+          setActivePrompt(promptText || "Input: ");
+          setActiveInputValue('');
+          inputResolverRef.current = resolve;
+        });
       };
 
-      await pyodide.runPythonAsync(`
-import builtins
-import js
+      const transformFunc = pyodide.globals.get("__transform_code");
+      const transformedCode = transformFunc ? transformFunc(code) : code;
 
-def custom_input(prompt=""):
-    return js.window.__python_prompt_input(str(prompt) if prompt is not None else "")
+      await pyodide.runPythonAsync(transformedCode);
 
-builtins.input = custom_input
-      `);
-      await pyodide.runPythonAsync(code);
       setTerminalHistory(prev => [...prev, { type: 'info', content: '[Process finished]' }]);
     } catch (e: any) {
       setTerminalHistory(prev => [...prev, { type: 'stderr', content: `Runtime Error: ${e.message}` }]);
     } finally {
       setIsExecuting(false);
+      setActivePrompt(null);
     }
   };
 
@@ -134,28 +242,19 @@ builtins.input = custom_input
     setIsExecuting(true);
 
     try {
-      (window as any).__python_prompt_input = (promptText: string) => {
-        const strPrompt = promptText ? String(promptText) : '';
-        const res = window.prompt(strPrompt || 'Python Input:');
-        const inputVal = res !== null ? res : '';
-        setTerminalHistory(prev => [
-          ...prev, 
-          { type: 'stdin', content: `${strPrompt}${inputVal}\n` }
-        ]);
-        return inputVal;
+      (window as any).__get_terminal_input = (promptText: string) => {
+        return new Promise<string>((resolve) => {
+          setActivePrompt(promptText || "Input: ");
+          setActiveInputValue('');
+          inputResolverRef.current = resolve;
+        });
       };
 
-      await pyodide.runPythonAsync(`
-import builtins
-import js
+      const transformFunc = pyodide.globals.get("__transform_code");
+      const transformedCmd = transformFunc ? transformFunc(cmd) : cmd;
 
-def custom_input(prompt=""):
-    return js.window.__python_prompt_input(str(prompt) if prompt is not None else "")
+      const result = await pyodide.runPythonAsync(transformedCmd);
 
-builtins.input = custom_input
-      `);
-
-      const result = await pyodide.runPythonAsync(cmd);
       if (result !== undefined) {
         setTerminalHistory(prev => [...prev, { type: 'stdout', content: String(result) }]);
       }
@@ -163,6 +262,7 @@ builtins.input = custom_input
       setTerminalHistory(prev => [...prev, { type: 'stderr', content: e.message }]);
     } finally {
       setIsExecuting(false);
+      setActivePrompt(null);
     }
   };
 
@@ -248,7 +348,14 @@ builtins.input = custom_input
                  <button onClick={() => setTerminalHistory([])} className="text-[9px] font-bold text-slate-500 hover:text-slate-300 uppercase tracking-widest">Clear Shell</button>
                </div>
             </div>
-            <div className="flex-1 p-8 overflow-y-auto scrollbar-thin code-font text-sm leading-relaxed text-slate-300">
+            <div 
+              className="flex-1 p-8 overflow-y-auto scrollbar-thin code-font text-sm leading-relaxed text-slate-300 cursor-text select-text"
+              onClick={() => {
+                if (activePrompt !== null && activeInputRef.current) {
+                  activeInputRef.current.focus();
+                }
+              }}
+            >
               {terminalHistory.map((line, idx) => (
                 <div key={idx} className={`mb-1 ${line.type === 'prompt' ? 'mt-4' : ''}`}>
                   {line.type === 'stdout' && <span className="text-white whitespace-pre-wrap">{line.content}</span>}
@@ -258,6 +365,21 @@ builtins.input = custom_input
                   {line.type === 'info' && <span className="text-slate-500 italic block mt-2 border-t border-white/5 pt-2 text-[10px]">{line.content}</span>}
                 </div>
               ))}
+
+              {activePrompt !== null && (
+                <form onSubmit={handleActiveInputSubmit} className="flex items-center flex-wrap gap-x-1 my-1">
+                  <span className="text-white whitespace-pre code-font text-sm font-normal">{activePrompt}</span>
+                  <input
+                    ref={activeInputRef}
+                    type="text"
+                    value={activeInputValue}
+                    onChange={e => setActiveInputValue(e.target.value)}
+                    className="flex-1 min-w-[120px] bg-transparent text-emerald-400 font-bold caret-emerald-400 code-font text-sm outline-none border-none p-0 m-0 focus:outline-none focus:ring-0"
+                    autoFocus
+                  />
+                </form>
+              )}
+
               <div ref={terminalEndRef} />
             </div>
             {mode === 'repl' && (

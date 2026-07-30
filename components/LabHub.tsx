@@ -155,7 +155,7 @@ const LabHub: React.FC<LabHubProps> = ({ user, labs, onSelectLab, onSelectAssess
                     <span className="text-[9px] font-black uppercase tracking-widest bg-indigo-50 dark:bg-indigo-900/30 px-2 py-0.5 rounded text-indigo-600">{lab.difficulty}</span>
                   </div>
                   <h4 className="text-lg font-black text-slate-900 dark:text-white mb-2">{lab.title}</h4>
-                  <p className="text-xs text-slate-500 font-medium leading-relaxed line-clamp-2 mb-6 flex-1">{lab.description}</p>
+                  <p className="text-xs text-slate-500 font-medium leading-relaxed line-clamp-2 mb-6 flex-1 select-none">{lab.description}</p>
                   <div className="flex justify-end">
                     <div className={`w-10 h-10 rounded-2xl flex items-center justify-center shadow-lg transition-colors ${isCompleted ? 'bg-emerald-500 shadow-emerald-500/20' : 'bg-indigo-600 text-white shadow-indigo-500/30'}`}>
                       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M5 12h14m-7-7 7 7-7 7"/></svg>

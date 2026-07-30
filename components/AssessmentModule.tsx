@@ -237,10 +237,16 @@ const AssessmentModule: React.FC<AssessmentModuleProps> = ({ assessment, user, o
       </div>
 
       <div className="flex-1 flex overflow-hidden">
-        <div className="w-[45%] border-r border-white/10 overflow-y-auto bg-slate-900 p-10 scrollbar-thin">
-          <div className="space-y-6">
+        <div 
+          className="w-[45%] border-r border-white/10 overflow-y-auto bg-slate-900 p-10 scrollbar-thin select-none"
+          onCopy={(e) => e.preventDefault()}
+          onCut={(e) => e.preventDefault()}
+          onContextMenu={(e) => e.preventDefault()}
+          onDragStart={(e) => e.preventDefault()}
+        >
+          <div className="space-y-6 select-none">
             <span className="inline-block px-3 py-1 bg-indigo-500/10 border border-indigo-500/20 rounded-lg text-[10px] font-black uppercase tracking-widest text-indigo-400">Question {currentQuestionIndex + 1}</span>
-            <h3 className="text-xl font-bold text-white leading-relaxed">{activeQuestions[currentQuestionIndex].text}</h3>
+            <h3 className="text-xl font-bold text-white leading-relaxed select-none">{activeQuestions[currentQuestionIndex].text}</h3>
             
             {activeQuestions[currentQuestionIndex].type === 'mcq' && (
               <div className="space-y-4 pt-4">

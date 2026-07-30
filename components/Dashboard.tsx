@@ -128,7 +128,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onSelectLab, labs = [], setView, 
                                     </div>
                                 )}
                             </div>
-                            <p className="text-slate-500 dark:text-slate-400 text-xs font-medium line-clamp-2">{nextLab.description}</p>
+                            <p className="text-slate-500 dark:text-slate-400 text-xs font-medium line-clamp-2 select-none">{nextLab.description}</p>
                             <button 
                                 onClick={() => onSelectLab(nextLab)}
                                 className="w-full bg-indigo-600 text-white py-4 rounded-2xl font-black text-[10px] md:text-[11px] uppercase tracking-widest shadow-xl shadow-indigo-600/20 hover:bg-indigo-700 transition-all"
@@ -202,7 +202,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onSelectLab, labs = [], setView, 
                                 </div>
                                 
                                 <h3 className="text-base md:text-lg font-black text-slate-900 dark:text-white mb-2 group-hover:text-indigo-600 transition-colors line-clamp-1">{lab.title}</h3>
-                                <p className="text-slate-500 dark:text-slate-400 text-[11px] leading-relaxed mb-6 flex-1 line-clamp-2 font-medium">{lab.description}</p>
+                                <p className="text-slate-500 dark:text-slate-400 text-[11px] leading-relaxed mb-6 flex-1 line-clamp-2 font-medium select-none">{lab.description}</p>
 
                                 <div className="flex items-center justify-between pt-4 md:pt-6 border-t border-slate-50 dark:border-slate-800">
                                     <div className="flex items-center gap-1.5 md:gap-2">

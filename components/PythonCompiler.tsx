@@ -39,8 +39,7 @@ interface TerminalLine {
 
 const PythonCompiler: React.FC = () => {
   const [mode, setMode] = useState<'script' | 'repl'>('script');
-  const [code, setCode] = useState('# Collaborative Python Workspace\n# Write your code here and press Execute\n\ndef greet(name):\n    return f"Welcome to TI Moodle, {name}!"\n\nprint(greet("Student"))');
-  const [stdin, setStdin] = useState('Input parameters...');
+  const [code, setCode] = useState('# Collaborative Python Workspace\n# Write your code here and press Execute\n\nname = input("Enter your name: ")\nprint(f"Welcome to Python IDLE, {name}!")');
   const [replInput, setReplInput] = useState('');
   const [terminalHistory, setTerminalHistory] = useState<TerminalLine[]>([]);
   const [isExecuting, setIsExecuting] = useState(false);
@@ -92,25 +91,31 @@ const PythonCompiler: React.FC = () => {
   const runScript = async () => {
     if (!pyodide || isExecuting) return;
     setIsExecuting(true);
-    setTerminalHistory(prev => [...prev, { type: 'info', content: '\n[Executing Script...]' }]);
+    setTerminalHistory(prev => [...prev, { type: 'info', content: '\n[Executing Script in IDLE Shell...]' }]);
     
     try {
-      pyodide.globals.set("_stdin_content", stdin);
+      (window as any).__python_prompt_input = (promptText: string) => {
+        const strPrompt = promptText ? String(promptText) : '';
+        const res = window.prompt(strPrompt || 'Python Input:');
+        const inputVal = res !== null ? res : '';
+        setTerminalHistory(prev => [
+          ...prev, 
+          { type: 'stdin', content: `${strPrompt}${inputVal}\n` }
+        ]);
+        return inputVal;
+      };
+
       await pyodide.runPythonAsync(`
 import builtins
-import sys
-_stdin_lines = str(_stdin_content).split('\\n')
-_line_idx = 0
+import js
+
 def custom_input(prompt=""):
-    global _line_idx
-    if prompt: print(prompt, end="")
-    if _line_idx < len(_stdin_lines):
-        val = _stdin_lines[_line_idx]; _line_idx += 1; print(val); return val
-    return ""
+    return js.window.__python_prompt_input(str(prompt) if prompt is not None else "")
+
 builtins.input = custom_input
       `);
       await pyodide.runPythonAsync(code);
-      setTerminalHistory(prev => [...prev, { type: 'info', content: '[Finished]' }]);
+      setTerminalHistory(prev => [...prev, { type: 'info', content: '[Process finished]' }]);
     } catch (e: any) {
       setTerminalHistory(prev => [...prev, { type: 'stderr', content: `Runtime Error: ${e.message}` }]);
     } finally {
@@ -129,6 +134,27 @@ builtins.input = custom_input
     setIsExecuting(true);
 
     try {
+      (window as any).__python_prompt_input = (promptText: string) => {
+        const strPrompt = promptText ? String(promptText) : '';
+        const res = window.prompt(strPrompt || 'Python Input:');
+        const inputVal = res !== null ? res : '';
+        setTerminalHistory(prev => [
+          ...prev, 
+          { type: 'stdin', content: `${strPrompt}${inputVal}\n` }
+        ]);
+        return inputVal;
+      };
+
+      await pyodide.runPythonAsync(`
+import builtins
+import js
+
+def custom_input(prompt=""):
+    return js.window.__python_prompt_input(str(prompt) if prompt is not None else "")
+
+builtins.input = custom_input
+      `);
+
       const result = await pyodide.runPythonAsync(cmd);
       if (result !== undefined) {
         setTerminalHistory(prev => [...prev, { type: 'stdout', content: String(result) }]);
@@ -210,25 +236,25 @@ builtins.input = custom_input
           </div>
         </div>
 
-        <div className={`flex-1 flex flex-col gap-6 min-h-0 transition-all duration-500 ${mode === 'repl' ? 'lg:flex-[3]' : 'lg:max-w-[450px]'}`}>
-          {mode === 'script' && (
-            <div className="h-1/4 bg-white dark:bg-slate-900 rounded-[2rem] border border-slate-200 dark:border-slate-800 shadow-lg flex flex-col overflow-hidden">
-               <div className="px-6 py-3 border-b border-slate-100 dark:border-white/5 bg-slate-50 dark:bg-slate-950 text-[9px] font-black text-slate-400 uppercase tracking-widest">Standard Input</div>
-               <textarea value={stdin} onChange={e => setStdin(e.target.value)} className="flex-1 p-6 bg-transparent text-slate-700 dark:text-indigo-300 code-font text-xs focus:outline-none resize-none" />
-            </div>
-          )}
-
+        <div className={`flex-1 flex flex-col gap-6 min-h-0 transition-all duration-500 ${mode === 'repl' ? 'lg:flex-[3]' : 'lg:flex-[2]'}`}>
           <div className="flex-1 bg-slate-900 dark:bg-black rounded-[2.5rem] border border-slate-800 shadow-2xl flex flex-col overflow-hidden relative">
             <div className="px-8 py-4 border-b border-white/10 bg-slate-950 flex justify-between items-center shrink-0">
-               <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">{mode === 'repl' ? 'Python Interpreter' : 'System Logs'}</span>
-               {isExecuting && <div className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse"></div>}
+               <div className="flex items-center gap-2">
+                 <div className="w-2 h-2 rounded-full bg-emerald-500"></div>
+                 <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{mode === 'repl' ? 'Python REPL Shell' : 'Python IDLE Output Screen'}</span>
+               </div>
+               <div className="flex items-center gap-3">
+                 {isExecuting && <span className="text-[9px] font-bold text-indigo-400 animate-pulse uppercase tracking-wider">Executing...</span>}
+                 <button onClick={() => setTerminalHistory([])} className="text-[9px] font-bold text-slate-500 hover:text-slate-300 uppercase tracking-widest">Clear Shell</button>
+               </div>
             </div>
             <div className="flex-1 p-8 overflow-y-auto scrollbar-thin code-font text-sm leading-relaxed text-slate-300">
               {terminalHistory.map((line, idx) => (
                 <div key={idx} className={`mb-1 ${line.type === 'prompt' ? 'mt-4' : ''}`}>
                   {line.type === 'stdout' && <span className="text-white whitespace-pre-wrap">{line.content}</span>}
                   {line.type === 'stderr' && <span className="text-red-400 font-bold whitespace-pre-wrap">{line.content}</span>}
-                  {line.type === 'prompt' && <span className="text-indigo-500 font-black">{line.content}</span>}
+                  {line.type === 'stdin' && <span className="text-emerald-400 font-bold whitespace-pre-wrap">{line.content}</span>}
+                  {line.type === 'prompt' && <span className="text-indigo-400 font-bold whitespace-pre-wrap">{line.content}</span>}
                   {line.type === 'info' && <span className="text-slate-500 italic block mt-2 border-t border-white/5 pt-2 text-[10px]">{line.content}</span>}
                 </div>
               ))}

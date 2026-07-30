@@ -131,9 +131,26 @@ export const BackendService = {
   },
 
   async login(username: string, password: string): Promise<User> {
-    const email = username.includes('@') ? username : `${username}@ti-moodle.edu`;
+    let targetEmail = username.includes('@') ? username : `${username}@ti-moodle.edu`;
+    
     try {
-      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      const usersRef = collection(db, "users");
+      const q = query(usersRef, where("username", "==", username));
+      const snap = await getDocs(q);
+      if (!snap.empty) {
+        const uData = snap.docs[0].data() as User & { authEmail?: string };
+        if (uData.authEmail) {
+          targetEmail = uData.authEmail;
+        }
+      } else if (username !== 'admin') {
+        throw new Error("Academic profile not found.");
+      }
+    } catch (e: any) {
+      if (e.message?.includes("not found")) throw e;
+    }
+
+    try {
+      const userCredential = await signInWithEmailAndPassword(auth, targetEmail, password);
       const userDocRef = doc(db, "users", userCredential.user.uid);
       const userDoc = await getDoc(userDocRef);
       
@@ -153,7 +170,7 @@ export const BackendService = {
           streak: userData.streak || 0
       };
     } catch (error: any) {
-      if (error.code === 'auth/invalid-credential' || error.code === 'auth/user-not-found') 
+      if (error.code === 'auth/invalid-credential' || error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') 
         throw new Error("Identity verification failed.");
       throw new Error(error.message || "Auth protocol error.");
     }
@@ -165,11 +182,26 @@ export const BackendService = {
   },
 
   async createAccount(data: { name: string, username: string, role: Role, grades?: string[] }): Promise<void> {
-    const email = `${data.username}@ti-moodle.edu`;
     const password = "password123";
+
+    // 1. Check if an active user document already exists in Firestore for this username
     try {
-      const cred = await createUserWithEmailAndPassword(secondaryAuth, email, password);
-      const newUser: User = { 
+      const usersRef = collection(db, "users");
+      const q = query(usersRef, where("username", "==", data.username));
+      const existingSnap = await getDocs(q);
+      if (!existingSnap.empty) {
+        throw new Error(`Username "${data.username}" is already assigned to an active user.`);
+      }
+    } catch (err: any) {
+      if (err.message?.includes('already assigned')) throw err;
+      // Continue if Firestore query error occurs
+    }
+
+    // 2. Try creating a new account in Firebase Auth
+    const primaryEmail = `${data.username}@ti-moodle.edu`;
+    try {
+      const cred = await createUserWithEmailAndPassword(secondaryAuth, primaryEmail, password);
+      const newUser: User & { authEmail?: string } = { 
         id: cred.user.uid, 
         username: data.username, 
         name: data.name, 
@@ -177,11 +209,51 @@ export const BackendService = {
         grades: data.grades || [],
         points: 0,
         streak: 0,
-        isFirstLogin: true
+        isFirstLogin: true,
+        authEmail: primaryEmail
       };
       await setDoc(doc(db, "users", cred.user.uid), newUser);
       await signOut(secondaryAuth);
     } catch (e: any) {
+      if (e.code === 'auth/email-already-in-use') {
+        // The username exists in Firebase Auth, but was deleted/removed from Firestore.
+        // Try signing in with default password first
+        try {
+          const cred = await signInWithEmailAndPassword(secondaryAuth, primaryEmail, password);
+          const newUser: User & { authEmail?: string } = { 
+            id: cred.user.uid, 
+            username: data.username, 
+            name: data.name, 
+            role: data.role, 
+            grades: data.grades || [],
+            points: 0,
+            streak: 0,
+            isFirstLogin: true,
+            authEmail: primaryEmail
+          };
+          await setDoc(doc(db, "users", cred.user.uid), newUser);
+          await signOut(secondaryAuth);
+          return;
+        } catch (signInErr: any) {
+          // If the deleted user changed their password previously, create a fresh Auth user record with a unique timestamped alias
+          const altEmail = `${data.username}.${Date.now()}@ti-moodle.edu`;
+          const cred = await createUserWithEmailAndPassword(secondaryAuth, altEmail, password);
+          const newUser: User & { authEmail?: string } = { 
+            id: cred.user.uid, 
+            username: data.username, 
+            name: data.name, 
+            role: data.role, 
+            grades: data.grades || [],
+            points: 0,
+            streak: 0,
+            isFirstLogin: true,
+            authEmail: altEmail
+          };
+          await setDoc(doc(db, "users", cred.user.uid), newUser);
+          await signOut(secondaryAuth);
+          return;
+        }
+      }
       throw new Error(`Provisioning Error: ${e.message}`);
     }
   },

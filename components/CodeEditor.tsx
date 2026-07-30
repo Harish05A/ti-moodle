@@ -113,17 +113,27 @@ const CodeEditor: React.FC<CodeEditorProps> = ({ initialCode, onCodeChange, test
 
     for (const tc of casesToRun) {
       try {
+        (window as any).__python_prompt_input = (promptText: string) => {
+          const strPrompt = promptText ? String(promptText) : '';
+          const res = window.prompt(strPrompt || 'Python Input:');
+          return res !== null ? res : '';
+        };
+
         pyodide.globals.set("_input_val", tc.input || "");
         await pyodide.runPythonAsync(`
-import sys, io, builtins
+import sys, io, builtins, js
 sys.stdout = io.StringIO()
 _lines = [line.replace('\\r', '') for line in str(_input_val).split('\\n')]
 _idx = 0
 def mock_in(p=""):
     global _idx
-    if _idx < len(_lines):
+    if _idx < len(_lines) and (_lines[_idx] != "" or len(_lines) == 1):
         v = _lines[_idx]; _idx += 1; return v
-    raise EOFError()
+    res = js.window.__python_prompt_input(str(p) if p else "Input:")
+    val = str(res) if res is not None else ""
+    if p: print(str(p) + val)
+    else: print(val)
+    return val
 builtins.input = mock_in
         `);
         await pyodide.runPythonAsync(code);

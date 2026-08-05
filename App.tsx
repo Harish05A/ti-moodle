@@ -49,6 +49,9 @@ const App: React.FC = () => {
   }, [isDarkMode]);
 
   useEffect(() => {
+    // Ensure Grade 12 Computer Science data is seeded and synced
+    BackendService.ensureGrade12Data().catch(err => console.warn("Seed Grade 12 data:", err));
+
     const unsubAuth = BackendService.onAuth((u) => {
       setUser(u);
       setIsLoading(false);

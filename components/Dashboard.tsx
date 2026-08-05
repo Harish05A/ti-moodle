@@ -75,7 +75,14 @@ const Dashboard: React.FC<DashboardProps> = ({ onSelectLab, labs = [], setView, 
 
     const filteredLabs = labs.filter(lab => {
         if (lab.status !== 'published') return false;
-        return lab.targetGrades?.some(g => user?.grades?.includes(g));
+        if (!lab.targetGrades || lab.targetGrades.length === 0) return true;
+        return lab.targetGrades.some(g => 
+          user?.grades?.includes(g) || 
+          (g === '12' && (user?.grades?.includes('cls-grade-12-cs') || user?.grades?.includes('12') || user?.grades?.includes('Grade 12'))) ||
+          (g === '11' && (user?.grades?.includes('cls-grade-11-cs') || user?.grades?.includes('11') || user?.grades?.includes('Grade 11'))) ||
+          (g === '10' && (user?.grades?.includes('cls-grade-10-cs') || user?.grades?.includes('10') || user?.grades?.includes('Grade 10'))) ||
+          (user?.grades?.includes('cls-grade-12-cs') && (g === 'cls-grade-12-cs' || g === '12'))
+        );
     });
     const nextLab = filteredLabs.find(l => !submissions.some(s => s.labId === l.id && s.status === 'graded'));
     const completedSubmissions = submissions.filter(s => s.status === 'graded');
@@ -96,10 +103,10 @@ const Dashboard: React.FC<DashboardProps> = ({ onSelectLab, labs = [], setView, 
                     <p className="text-indigo-100/80 text-xs md:text-sm font-medium max-w-md leading-relaxed italic">"{quote}"</p>
                     <div className="mt-6 md:mt-8 flex flex-wrap gap-4 md:gap-6 items-center">
                         <div className="flex items-center gap-3 px-4 md:px-6 py-3 md:py-4 bg-white/10 backdrop-blur-md rounded-2xl border border-white/10">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="text-amber-400"><path d="M12 2v2"/><path d="M12 20v2"/><path d="M2 12h2"/><path d="M20 12h2"/><circle cx="12" cy="12" r="4"/></svg>
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="text-indigo-300"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
                             <div>
-                                <p className="text-[8px] md:text-[10px] font-black uppercase tracking-widest text-white/60">Attendance Streak</p>
-                                <p className="text-base md:text-xl font-black">{user?.streak || 0} Days</p>
+                                <p className="text-[8px] md:text-[10px] font-black uppercase tracking-widest text-white/60">Days Worked on Platform</p>
+                                <p className="text-base md:text-xl font-black">{user?.streak || 1} Days</p>
                             </div>
                         </div>
                         <div className="flex items-center gap-3 px-4 md:px-6 py-3 md:py-4 bg-white/10 backdrop-blur-md rounded-2xl border border-white/10">

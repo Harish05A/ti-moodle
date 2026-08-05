@@ -49,8 +49,17 @@ const LabHub: React.FC<LabHubProps> = ({ user, labs, onSelectLab, onSelectAssess
     };
   }, [user]);
 
+  const isLabInClass = (lab: LabExperiment, classId: string) => {
+    if (!lab.targetGrades || lab.targetGrades.length === 0) return true;
+    if (lab.targetGrades.includes(classId)) return true;
+    if (classId === 'cls-grade-12-cs' && (lab.targetGrades.includes('12') || lab.targetGrades.includes('Grade 12'))) return true;
+    if (classId === 'cls-grade-11-cs' && (lab.targetGrades.includes('11') || lab.targetGrades.includes('Grade 11'))) return true;
+    if (classId === 'cls-grade-10-cs' && (lab.targetGrades.includes('10') || lab.targetGrades.includes('Grade 10'))) return true;
+    return false;
+  };
+
   const filteredLabs = labs.filter(lab => {
-    const isTargeted = selectedClassId ? lab.targetGrades.includes(selectedClassId) : false;
+    const isTargeted = selectedClassId ? isLabInClass(lab, selectedClassId) : false;
     const isVisible = user.role === 'student' ? lab.status === 'published' : true;
     return isTargeted && isVisible;
   });
@@ -104,8 +113,8 @@ const LabHub: React.FC<LabHubProps> = ({ user, labs, onSelectLab, onSelectAssess
       {!selectedClassId ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
           {classrooms.map(cls => {
-            const classLabsCount = labs.filter(l => l.targetGrades.includes(cls.id)).length;
-            const classTestsCount = assessments.filter(a => a.targetGrades.includes(cls.id)).length;
+            const classLabsCount = labs.filter(l => isLabInClass(l, cls.id)).length;
+            const classTestsCount = assessments.filter(a => a.targetGrades && a.targetGrades.includes(cls.id)).length;
 
             return (
               <div 

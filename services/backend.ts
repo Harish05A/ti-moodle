@@ -67,9 +67,9 @@ export const DEFAULT_GRADE_11_CLASS: Classroom = {
 
 export const DEFAULT_G12_STUDENTS: User[] = [
   {
-    id: 'std-santhosh',
-    username: '2024CS106',
-    name: 'Santhosh',
+    id: '12024',
+    username: '12024',
+    name: 'SANTHOSH A',
     role: 'student',
     grades: ['cls-grade-12-cs', '12', 'Grade 12'],
     points: 200,
@@ -130,8 +130,8 @@ export const DEFAULT_G12_STUDENTS: User[] = [
 
 export const DEFAULT_G11_STUDENTS: User[] = [
   {
-    id: 'std-avanthika',
-    username: '2024CS1101',
+    id: '11003',
+    username: '11003',
     name: 'Avanthika',
     role: 'student',
     grades: ['cls-grade-11-cs', '11', 'Grade 11'],
@@ -192,8 +192,13 @@ export const BackendService = {
       const localStr = localStorage.getItem("ti_moodle_local_submissions");
       let localSubs: Submission[] = localStr ? JSON.parse(localStr) : [];
       
-      // Clean out fake default seeded submissions
-      localSubs = localSubs.filter(s => !s.feedback?.includes('Auto-Verified: All recursive'));
+      // Clean out fake default seeded submissions & extra submissions for Santhosh if not the 2 Grade 12 labs
+      localSubs = localSubs.filter(s => {
+        if (s.feedback?.includes('Auto-Verified: All recursive')) return false;
+        const isSanthoshSub = s.userId === '12024' || s.userId === 'std-santhosh' || s.userName?.toLowerCase().includes('santhosh');
+        if (isSanthoshSub && s.labId !== 'fibonacci-adv' && s.labId !== 'data-structures-linked') return false;
+        return true;
+      });
 
       // Seed submissions for Avanthika (Grade 11 - 4 experiments solved = 400 XP)
       const avanthikaSubs: Submission[] = [
@@ -243,11 +248,11 @@ export const BackendService = {
         }
       ];
 
-      // Seed submissions for Santhosh (Grade 12 - 2 experiments solved = 200 XP)
+      // Seed submissions for Santhosh A (Grade 12 - 2 experiments solved out of 2 = 200 XP)
       const santhoshSubs: Submission[] = [
         {
-          userId: 'std-santhosh',
-          userName: 'Santhosh',
+          userId: '12024',
+          userName: 'SANTHOSH A',
           labId: 'fibonacci-adv',
           classId: 'cls-grade-12-cs',
           status: 'graded',
@@ -257,8 +262,8 @@ export const BackendService = {
           feedback: 'Auto-Verified: All test cases passed with optimal recursive stack.'
         },
         {
-          userId: 'std-santhosh',
-          userName: 'Santhosh',
+          userId: '12024',
+          userName: 'SANTHOSH A',
           labId: 'data-structures-linked',
           classId: 'cls-grade-12-cs',
           status: 'graded',
@@ -300,12 +305,12 @@ export const BackendService = {
         await setDoc(userRef, student, { merge: true });
       }
 
-      // Reset any legacy students with 50 XP
+      // Reset any legacy students with 50 XP and ensure SANTHOSH A has 200 XP
       const usersSnap = await getDocs(query(collection(db, "users"), where("role", "==", "student")));
       for (const d of usersSnap.docs) {
         const u = d.data() as User;
-        if (u.name?.toLowerCase().includes('santhosh')) {
-          await updateDoc(d.ref, { points: 200, streak: 2 });
+        if (u.name?.toLowerCase().includes('santhosh') || u.id === '12024' || u.username === '12024' || u.id === 'std-santhosh') {
+          await updateDoc(d.ref, { name: 'SANTHOSH A', username: '12024', points: 200, streak: 2 });
         } else if (u.name?.toLowerCase().includes('avanthika')) {
           await updateDoc(d.ref, { points: 400, streak: 4 });
         } else if (u.points === 50 && (!u.grades || u.grades.some(g => g.includes('12')))) {

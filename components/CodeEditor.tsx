@@ -194,6 +194,158 @@ builtins.input = mock_in
     runCode(true);
   };
 
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (readOnly) return;
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+
+    const { selectionStart, selectionEnd, value } = textarea;
+
+    // 1. Enter key: Auto-indent and Colon handling
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      const beforeCursor = value.substring(0, selectionStart);
+      const lineStart = beforeCursor.lastIndexOf('\n') + 1;
+      const currentLine = beforeCursor.substring(lineStart);
+
+      // Extract leading indentation of current line
+      const indentMatch = currentLine.match(/^([ \t]*)/);
+      const currentIndent = indentMatch ? indentMatch[1] : '';
+
+      // Check if code before cursor on current line ends with colon (ignoring comments & trailing space)
+      const lineCodeWithoutComments = currentLine.replace(/#.*$/, '').trimEnd();
+      const endsWithColon = lineCodeWithoutComments.endsWith(':');
+
+      // Add 4 spaces of Python indentation when a colon is given
+      const nextIndent = currentIndent + (endsWithColon ? '    ' : '');
+      const textToInsert = '\n' + nextIndent;
+
+      const afterCursor = value.substring(selectionEnd);
+      const updatedCode = beforeCursor + textToInsert + afterCursor;
+
+      setCode(updatedCode);
+      onCodeChange?.(updatedCode);
+
+      const newCursorPos = selectionStart + textToInsert.length;
+      requestAnimationFrame(() => {
+        if (textareaRef.current) {
+          textareaRef.current.selectionStart = newCursorPos;
+          textareaRef.current.selectionEnd = newCursorPos;
+          syncScroll();
+        }
+      });
+      return;
+    }
+
+    // 2. Tab key: Indent or Block Indent / Shift+Tab: Dedent
+    if (e.key === 'Tab') {
+      e.preventDefault();
+      if (e.shiftKey) {
+        // Shift + Tab: Dedent
+        const lineStart = value.lastIndexOf('\n', selectionStart - 1) + 1;
+        const lineEnd = value.indexOf('\n', selectionEnd);
+        const effectiveEnd = lineEnd === -1 ? value.length : lineEnd;
+        const selectedBlock = value.substring(lineStart, effectiveEnd);
+        const lines = selectedBlock.split('\n');
+
+        let removedCountFirstLine = 0;
+        let totalRemoved = 0;
+
+        const dedentedLines = lines.map((line, idx) => {
+          let toRemove = 0;
+          if (line.startsWith('    ')) toRemove = 4;
+          else if (line.startsWith('\t')) toRemove = 1;
+          else if (line.startsWith('  ')) toRemove = 2;
+          else if (line.startsWith(' ')) toRemove = 1;
+
+          if (idx === 0) removedCountFirstLine = toRemove;
+          totalRemoved += toRemove;
+          return line.substring(toRemove);
+        });
+
+        const newBlock = dedentedLines.join('\n');
+        const updatedCode = value.substring(0, lineStart) + newBlock + value.substring(effectiveEnd);
+
+        setCode(updatedCode);
+        onCodeChange?.(updatedCode);
+
+        requestAnimationFrame(() => {
+          if (textareaRef.current) {
+            if (selectionStart === selectionEnd) {
+              const newPos = Math.max(lineStart, selectionStart - removedCountFirstLine);
+              textareaRef.current.selectionStart = newPos;
+              textareaRef.current.selectionEnd = newPos;
+            } else {
+              textareaRef.current.selectionStart = Math.max(lineStart, selectionStart - removedCountFirstLine);
+              textareaRef.current.selectionEnd = Math.max(lineStart, selectionEnd - totalRemoved);
+            }
+            syncScroll();
+          }
+        });
+      } else {
+        // Tab: Indent 4 spaces
+        if (selectionStart === selectionEnd) {
+          const updatedCode = value.substring(0, selectionStart) + '    ' + value.substring(selectionEnd);
+          setCode(updatedCode);
+          onCodeChange?.(updatedCode);
+          const newPos = selectionStart + 4;
+          requestAnimationFrame(() => {
+            if (textareaRef.current) {
+              textareaRef.current.selectionStart = newPos;
+              textareaRef.current.selectionEnd = newPos;
+              syncScroll();
+            }
+          });
+        } else {
+          const lineStart = value.lastIndexOf('\n', selectionStart - 1) + 1;
+          const lineEnd = value.indexOf('\n', selectionEnd);
+          const effectiveEnd = lineEnd === -1 ? value.length : lineEnd;
+          const selectedBlock = value.substring(lineStart, effectiveEnd);
+          const lines = selectedBlock.split('\n');
+          const indentedLines = lines.map(line => '    ' + line);
+          const newBlock = indentedLines.join('\n');
+          const totalAdded = lines.length * 4;
+          const updatedCode = value.substring(0, lineStart) + newBlock + value.substring(effectiveEnd);
+
+          setCode(updatedCode);
+          onCodeChange?.(updatedCode);
+
+          requestAnimationFrame(() => {
+            if (textareaRef.current) {
+              textareaRef.current.selectionStart = selectionStart + 4;
+              textareaRef.current.selectionEnd = selectionEnd + totalAdded;
+              syncScroll();
+            }
+          });
+        }
+      }
+      return;
+    }
+
+    // 3. Backspace on 4-space tab indentation
+    if (e.key === 'Backspace' && selectionStart === selectionEnd) {
+      const beforeCursor = value.substring(0, selectionStart);
+      const lineStart = beforeCursor.lastIndexOf('\n') + 1;
+      const currentLineBeforeCursor = beforeCursor.substring(lineStart);
+
+      if (/^[ ]+$/.test(currentLineBeforeCursor) && currentLineBeforeCursor.length >= 4 && currentLineBeforeCursor.length % 4 === 0) {
+        e.preventDefault();
+        const updatedCode = value.substring(0, selectionStart - 4) + value.substring(selectionEnd);
+        setCode(updatedCode);
+        onCodeChange?.(updatedCode);
+        const newPos = selectionStart - 4;
+        requestAnimationFrame(() => {
+          if (textareaRef.current) {
+            textareaRef.current.selectionStart = newPos;
+            textareaRef.current.selectionEnd = newPos;
+            syncScroll();
+          }
+        });
+        return;
+      }
+    }
+  };
+
   const currentResult = testResults[selectedCaseIdx];
 
   // Identical Style Definition
@@ -273,6 +425,7 @@ builtins.input = mock_in
               ref={textareaRef} 
               value={code} 
               onChange={e => { if (!readOnly) { setCode(e.target.value); onCodeChange?.(e.target.value); } }}
+              onKeyDown={handleKeyDown}
               onScroll={syncScroll} 
               spellCheck={false}
               style={editorStyles}

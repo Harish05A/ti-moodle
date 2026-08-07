@@ -105,20 +105,32 @@ const ManageClasses: React.FC = () => {
     if (!activeRosterClass || isSyncingEnrollment) return;
     
     setIsSyncingEnrollment(true);
-    const isEnrolled = student.grades?.includes(activeRosterClass.id);
+    const isEnrolled = (student.grades || []).some(g => 
+      g === activeRosterClass.id || 
+      g === activeRosterClass.name || 
+      g.toLowerCase() === activeRosterClass.name.toLowerCase() ||
+      (activeRosterClass.name.toLowerCase().includes('11') && (g.includes('11') || g.toLowerCase().includes('grade 11'))) ||
+      (activeRosterClass.name.toLowerCase().includes('12') && (g.includes('12') || g.toLowerCase().includes('grade 12')))
+    );
     
     try {
       if (isEnrolled) {
         await BackendService.unenrollStudent(student.id, activeRosterClass.id);
+        if (activeRosterClass.name) {
+          await BackendService.unenrollStudent(student.id, activeRosterClass.name).catch(() => {});
+        }
       } else {
         await BackendService.enrollStudent(student.id, activeRosterClass.id);
+        if (activeRosterClass.name) {
+          await BackendService.enrollStudent(student.id, activeRosterClass.name).catch(() => {});
+        }
       }
       
       setAllStudents(prev => prev.map(s => {
         if (s.id === student.id) {
           const newGrades = isEnrolled 
-            ? (s.grades || []).filter(g => g !== activeRosterClass.id)
-            : [...(s.grades || []), activeRosterClass.id];
+            ? (s.grades || []).filter(g => g !== activeRosterClass.id && g !== activeRosterClass.name && !g.toLowerCase().includes(activeRosterClass.name.toLowerCase()))
+            : [...(s.grades || []), activeRosterClass.name, activeRosterClass.id];
           return { ...s, grades: newGrades };
         }
         return s;
@@ -228,7 +240,7 @@ const ManageClasses: React.FC = () => {
 
             <div className="mt-8 pt-6 border-t border-slate-100 dark:border-slate-800 flex justify-between items-center">
                 <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                  {allStudents.filter(s => s.grades?.includes(cls.id)).length} Enrolled
+                  {allStudents.filter(s => (s.grades || []).some(g => g === cls.id || g === cls.name || (cls.name.toLowerCase().includes('11') && (g.includes('11') || g.toLowerCase().includes('grade 11'))) || (cls.name.toLowerCase().includes('12') && (g.includes('12') || g.toLowerCase().includes('grade 12'))))).length} Enrolled
                 </div>
                 <button 
                   onClick={() => setActiveRosterClass(cls)}
@@ -272,10 +284,16 @@ const ManageClasses: React.FC = () => {
 
             <div className="flex-1 overflow-y-auto p-10 space-y-4 scrollbar-thin">
                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {filteredStudents.map(student => {
-                    const isEnrolled = student.grades?.includes(activeRosterClass.id);
+                  {filteredStudents.map((student, stIdx) => {
+                    const isEnrolled = (student.grades || []).some(g => 
+                      g === activeRosterClass.id || 
+                      g === activeRosterClass.name || 
+                      g.toLowerCase() === activeRosterClass.name.toLowerCase() ||
+                      (activeRosterClass.name.toLowerCase().includes('11') && (g.includes('11') || g.toLowerCase().includes('grade 11'))) ||
+                      (activeRosterClass.name.toLowerCase().includes('12') && (g.includes('12') || g.toLowerCase().includes('grade 12')))
+                    );
                     return (
-                      <div key={student.id} className={`p-6 rounded-[2rem] border transition-all flex items-center justify-between group ${isEnrolled ? 'bg-indigo-50 dark:bg-indigo-900/20 border-indigo-200' : 'bg-slate-50 dark:bg-slate-800/50 border-slate-200'}`}>
+                      <div key={student.id ? `${student.id}-${stIdx}` : `student-${stIdx}`} className={`p-6 rounded-[2rem] border transition-all flex items-center justify-between group ${isEnrolled ? 'bg-indigo-50 dark:bg-indigo-900/20 border-indigo-200' : 'bg-slate-50 dark:bg-slate-800/50 border-slate-200'}`}>
                          <div>
                             <p className="text-sm font-black text-slate-900 dark:text-white leading-none">{student.name}</p>
                             <p className="text-[10px] font-bold text-slate-400 mt-1 uppercase">ID: {student.username}</p>
@@ -283,7 +301,7 @@ const ManageClasses: React.FC = () => {
                          <button 
                           disabled={isSyncingEnrollment}
                           onClick={() => handleToggleEnrollment(student)}
-                          className={`px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${isEnrolled ? 'bg-red-50 text-red-600' : 'bg-indigo-600 text-white shadow-md'}`}
+                          className={`px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${isEnrolled ? 'bg-red-50 text-red-600 dark:bg-red-950/40 dark:text-red-400' : 'bg-indigo-600 text-white shadow-md'}`}
                          >
                             {isEnrolled ? 'Remove' : 'Enroll'}
                          </button>

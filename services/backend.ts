@@ -51,19 +51,164 @@ const secondaryAuth: Auth = getAuth(secondaryApp);
 
 setPersistence(secondaryAuth, browserSessionPersistence).catch(console.warn);
 
-export const DEFAULT_GRADE_12_CLASS: Classroom = {
-  id: 'cls-grade-12-cs',
-  name: 'Grade 12 Computer Science',
-  teacherId: 'teacher-1',
-  teacherName: 'Dr. K. Ramanathan'
-};
+export const DELETED_STUDENT_NAMES = [
+  'ananya sharma',
+  'kavya raman',
+  'rohit varma',
+  'siddharth nair',
+  'priya sundaram',
+  'aditya krishnan',
+  'sneha murali',
+  'harish kumar',
+  'deepika s'
+];
 
-export const DEFAULT_GRADE_11_CLASS: Classroom = {
-  id: 'cls-grade-11-cs',
-  name: 'Grade 11 Computer Science',
-  teacherId: 'teacher-1',
-  teacherName: 'Dr. K. Ramanathan'
-};
+export const DELETED_STUDENT_IDS = [
+  'std-2024cs101', '2024cs101',
+  'std-2024cs102', '2024cs102',
+  'std-2024cs103', '2024cs103',
+  'std-2024cs104', '2024cs104',
+  'std-2024cs105', '2024cs105',
+  'std-2024cs1102', '2024cs1102',
+  'std-2024cs1103', '2024cs1103',
+  'std-2024cs1104', '2024cs1104',
+  'std-2024cs1105', '2024cs1105'
+];
+
+export const INITIAL_ARCHIVED_DELETED_STUDENTS: (User & { deletedAt?: number })[] = [
+  {
+    id: 'std-2024cs105',
+    username: '2024cs105',
+    name: 'Priya Sundaram',
+    role: 'student',
+    grades: ['12', 'Grade 12 Computer Science'],
+    points: 290,
+    streak: 3,
+    isFirstLogin: false,
+    deletedAt: Date.now() - 86400000 * 1
+  },
+  {
+    id: 'std-2024cs101',
+    username: '2024cs101',
+    name: 'Ananya Sharma',
+    role: 'student',
+    grades: ['12', 'Grade 12 Computer Science'],
+    points: 150,
+    streak: 2,
+    isFirstLogin: false,
+    deletedAt: Date.now() - 86400000 * 2
+  },
+  {
+    id: 'std-2024cs102',
+    username: '2024cs102',
+    name: 'Kavya Raman',
+    role: 'student',
+    grades: ['11', 'Grade 11 Computer Science'],
+    points: 220,
+    streak: 3,
+    isFirstLogin: false,
+    deletedAt: Date.now() - 86400000 * 3
+  },
+  {
+    id: 'std-2024cs103',
+    username: '2024cs103',
+    name: 'Rohit Varma',
+    role: 'student',
+    grades: ['12', 'Grade 12 Computer Science'],
+    points: 180,
+    streak: 1,
+    isFirstLogin: false,
+    deletedAt: Date.now() - 86400000 * 4
+  },
+  {
+    id: 'std-2024cs104',
+    username: '2024cs104',
+    name: 'Siddharth Nair',
+    role: 'student',
+    grades: ['11', 'Grade 11 Computer Science'],
+    points: 310,
+    streak: 4,
+    isFirstLogin: false,
+    deletedAt: Date.now() - 86400000 * 5
+  }
+];
+
+export function getRestoredUserIds(): Set<string> {
+  try {
+    const raw = localStorage.getItem("ti_moodle_restored_user_ids");
+    return raw ? new Set(JSON.parse(raw)) : new Set();
+  } catch (e) {
+    return new Set();
+  }
+}
+
+export function addRestoredUserId(id: string): void {
+  if (!id) return;
+  try {
+    const ids = getRestoredUserIds();
+    ids.add(id.trim().toLowerCase());
+    localStorage.setItem("ti_moodle_restored_user_ids", JSON.stringify(Array.from(ids)));
+  } catch (e) {}
+}
+
+export function removeRestoredUserId(id: string): void {
+  if (!id) return;
+  try {
+    const ids = getRestoredUserIds();
+    ids.delete(id.trim().toLowerCase());
+    localStorage.setItem("ti_moodle_restored_user_ids", JSON.stringify(Array.from(ids)));
+  } catch (e) {}
+}
+
+export function isDeletedStudent(u: { id?: string; username?: string; name?: string } | null | undefined): boolean {
+  if (!u) return false;
+  const name = (u.name || '').trim().toLowerCase();
+  const id = (u.id || '').trim().toLowerCase();
+  const username = (u.username || '').trim().toLowerCase();
+
+  // If student was restored, never filter them out!
+  const restoredIds = getRestoredUserIds();
+  if (restoredIds.has(id) || restoredIds.has(username) || restoredIds.has(name)) {
+    return false;
+  }
+
+  // Check if student was explicitly deleted by admin during sessions
+  try {
+    const localDeleted = localStorage.getItem("ti_moodle_deleted_users");
+    if (localDeleted) {
+      const parsed: (User & { id?: string; username?: string; name?: string })[] = JSON.parse(localDeleted);
+      if (parsed.some(d => (d.id && d.id.toLowerCase() === id) || (d.username && d.username.toLowerCase() === username))) {
+        return true;
+      }
+    }
+  } catch (e) {}
+
+  if (DELETED_STUDENT_NAMES.some(n => name === n || (name.length > 3 && name.includes(n)))) return true;
+  if (DELETED_STUDENT_IDS.some(did => id === did || username === did)) return true;
+  return false;
+}
+
+export const DEFAULT_CLASSROOMS: Classroom[] = [
+  {
+    id: 'class-grade-11-cs',
+    name: 'Grade 11 Computer Science',
+    teacherId: 'teacher-g11',
+    teacherName: 'CS Faculty'
+  },
+  {
+    id: 'class-grade-12-cs',
+    name: 'Grade 12 Computer Science',
+    teacherId: 'teacher-g12',
+    teacherName: 'CS Faculty'
+  }
+];
+
+export function isDeletedClassroom(cls: { id?: string; name?: string; teacherName?: string } | null | undefined): boolean {
+  if (!cls) return false;
+  const teacher = (cls.teacherName || '').trim().toLowerCase();
+  if (teacher.includes('ramanathan')) return true;
+  return false;
+}
 
 export const DEFAULT_G12_STUDENTS: User[] = [
   {
@@ -71,59 +216,9 @@ export const DEFAULT_G12_STUDENTS: User[] = [
     username: '12024',
     name: 'SANTHOSH A',
     role: 'student',
-    grades: ['cls-grade-12-cs', '12', 'Grade 12'],
+    grades: ['12', 'Grade 12', 'Grade 12 Computer Science', 'class-grade-12-cs'],
     points: 200,
     streak: 2,
-    isFirstLogin: false
-  },
-  {
-    id: 'std-2024cs101',
-    username: '2024CS101',
-    name: 'Ananya Sharma',
-    role: 'student',
-    grades: ['cls-grade-12-cs', '12', 'Grade 12'],
-    points: 0,
-    streak: 1,
-    isFirstLogin: false
-  },
-  {
-    id: 'std-2024cs102',
-    username: '2024CS102',
-    name: 'Kavya Raman',
-    role: 'student',
-    grades: ['cls-grade-12-cs', '12', 'Grade 12'],
-    points: 0,
-    streak: 1,
-    isFirstLogin: false
-  },
-  {
-    id: 'std-2024cs103',
-    username: '2024CS103',
-    name: 'Rohit Varma',
-    role: 'student',
-    grades: ['cls-grade-12-cs', '12', 'Grade 12'],
-    points: 0,
-    streak: 1,
-    isFirstLogin: false
-  },
-  {
-    id: 'std-2024cs104',
-    username: '2024CS104',
-    name: 'Siddharth Nair',
-    role: 'student',
-    grades: ['cls-grade-12-cs', '12', 'Grade 12'],
-    points: 0,
-    streak: 1,
-    isFirstLogin: false
-  },
-  {
-    id: 'std-2024cs105',
-    username: '2024CS105',
-    name: 'Priya Sundaram',
-    role: 'student',
-    grades: ['cls-grade-12-cs', '12', 'Grade 12'],
-    points: 0,
-    streak: 1,
     isFirstLogin: false
   }
 ];
@@ -134,52 +229,95 @@ export const DEFAULT_G11_STUDENTS: User[] = [
     username: '11003',
     name: 'Avanthika',
     role: 'student',
-    grades: ['cls-grade-11-cs', '11', 'Grade 11'],
+    grades: ['11', 'Grade 11', 'Grade 11 Computer Science', 'class-grade-11-cs', 'cls-grade-11-cs'],
     points: 400,
     streak: 4,
     isFirstLogin: false
-  },
-  {
-    id: 'std-2024cs1102',
-    username: '2024CS1102',
-    name: 'Aditya Krishnan',
-    role: 'student',
-    grades: ['cls-grade-11-cs', '11', 'Grade 11'],
-    points: 0,
-    streak: 1,
-    isFirstLogin: false
-  },
-  {
-    id: 'std-2024cs1103',
-    username: '2024CS1103',
-    name: 'Sneha Murali',
-    role: 'student',
-    grades: ['cls-grade-11-cs', '11', 'Grade 11'],
-    points: 0,
-    streak: 1,
-    isFirstLogin: false
-  },
-  {
-    id: 'std-2024cs1104',
-    username: '2024CS1104',
-    name: 'Harish Kumar',
-    role: 'student',
-    grades: ['cls-grade-11-cs', '11', 'Grade 11'],
-    points: 0,
-    streak: 1,
-    isFirstLogin: false
-  },
-  {
-    id: 'std-2024cs1105',
-    username: '2024CS1105',
-    name: 'Deepika S',
-    role: 'student',
-    grades: ['cls-grade-11-cs', '11', 'Grade 11'],
-    points: 0,
-    streak: 1,
-    isFirstLogin: false
   }
 ];
+
+export const DEFAULT_STUDENTS: User[] = [
+  ...DEFAULT_G12_STUDENTS,
+  ...DEFAULT_G11_STUDENTS
+];
+
+export function normalizeAndDeduplicateUsers(rawUsers: User[]): User[] {
+  const result: User[] = [];
+  const seenKeys = new Set<string>();
+
+  for (const raw of rawUsers) {
+    if (!raw || isDeletedStudent(raw)) continue;
+
+    const id = (raw.id || '').trim();
+    const username = (raw.username || '').trim();
+    const name = (raw.name || '').trim();
+    const nameLower = name.toLowerCase();
+    const idLower = id.toLowerCase();
+    const usernameLower = username.toLowerCase();
+
+    // Check if Santhosh
+    const isSanthosh = id === '12024' || username === '12024' || idLower.includes('santhosh') || usernameLower.includes('santhosh') || nameLower.includes('santhosh');
+    // Check if Avanthika
+    const isAvanthika = id === '11003' || username === '11003' || idLower.includes('avanthika') || usernameLower.includes('avanthika') || nameLower.includes('avanthika');
+
+    let canonicalUser: User;
+    let canonicalKey: string;
+
+    if (isSanthosh) {
+      canonicalKey = 'santhosh-12024';
+      canonicalUser = {
+        ...raw,
+        id: '12024',
+        username: '12024',
+        name: 'SANTHOSH A',
+        role: 'student',
+        grades: raw.grades && raw.grades.length > 0 ? raw.grades : ['12', 'Grade 12'],
+        points: 200,
+        streak: 2,
+        isFirstLogin: false
+      };
+    } else if (isAvanthika) {
+      canonicalKey = 'avanthika-11003';
+      canonicalUser = {
+        ...raw,
+        id: '11003',
+        username: '11003',
+        name: 'Avanthika',
+        role: 'student',
+        grades: raw.grades && raw.grades.length > 0 ? raw.grades : ['11', 'Grade 11'],
+        points: 400,
+        streak: 4,
+        isFirstLogin: false
+      };
+    } else {
+      canonicalKey = (id || username || name).toLowerCase();
+      canonicalUser = {
+        ...raw,
+        id: id || username,
+        username: username || id,
+        name: name,
+        points: raw.points || 0,
+        streak: raw.streak || 0,
+        grades: raw.grades || []
+      };
+    }
+
+    if (!seenKeys.has(canonicalKey)) {
+      seenKeys.add(canonicalKey);
+      result.push(canonicalUser);
+    }
+  }
+
+  // Ensure default students are present if not found
+  if (!seenKeys.has('santhosh-12024')) {
+    result.push(DEFAULT_G12_STUDENTS[0]);
+  }
+  if (!seenKeys.has('avanthika-11003')) {
+    result.push(DEFAULT_G11_STUDENTS[0]);
+  }
+
+  return result;
+}
 
 export const BackendService = {
   async ensureGrade12Data(): Promise<void> {
@@ -192,9 +330,10 @@ export const BackendService = {
       const localStr = localStorage.getItem("ti_moodle_local_submissions");
       let localSubs: Submission[] = localStr ? JSON.parse(localStr) : [];
       
-      // Clean out fake default seeded submissions & extra submissions for Santhosh if not the 2 Grade 12 labs
+      // Clean out deleted students' submissions & fake default submissions
       localSubs = localSubs.filter(s => {
         if (s.feedback?.includes('Auto-Verified: All recursive')) return false;
+        if (isDeletedStudent({ id: s.userId, name: s.userName })) return false;
         const isSanthoshSub = s.userId === '12024' || s.userId === 'std-santhosh' || s.userName?.toLowerCase().includes('santhosh');
         if (isSanthoshSub && s.labId !== 'fibonacci-adv' && s.labId !== 'data-structures-linked') return false;
         return true;
@@ -203,10 +342,10 @@ export const BackendService = {
       // Seed submissions for Avanthika (Grade 11 - 4 experiments solved = 400 XP)
       const avanthikaSubs: Submission[] = [
         {
-          userId: 'std-avanthika',
+          userId: '11003',
           userName: 'Avanthika',
           labId: 'fibonacci-adv',
-          classId: 'cls-grade-11-cs',
+          classId: '11',
           status: 'graded',
           pointsAwarded: 100,
           submittedAt: Date.now() - 3600000 * 24 * 3,
@@ -214,10 +353,10 @@ export const BackendService = {
           feedback: 'Auto-Verified: Recursive approach verified with optimal complexity.'
         },
         {
-          userId: 'std-avanthika',
+          userId: '11003',
           userName: 'Avanthika',
           labId: 'factorial-recur',
-          classId: 'cls-grade-11-cs',
+          classId: '11',
           status: 'graded',
           pointsAwarded: 100,
           submittedAt: Date.now() - 3600000 * 24 * 2,
@@ -225,10 +364,10 @@ export const BackendService = {
           feedback: 'Auto-Verified: All test cases passed with valid base cases.'
         },
         {
-          userId: 'std-avanthika',
+          userId: '11003',
           userName: 'Avanthika',
           labId: 'palindrome-checker',
-          classId: 'cls-grade-11-cs',
+          classId: '11',
           status: 'graded',
           pointsAwarded: 100,
           submittedAt: Date.now() - 3600000 * 24 * 1,
@@ -236,10 +375,10 @@ export const BackendService = {
           feedback: 'Auto-Verified: Correct string slice reversing and boundary checks.'
         },
         {
-          userId: 'std-avanthika',
+          userId: '11003',
           userName: 'Avanthika',
           labId: 'matrix-addition',
-          classId: 'cls-grade-11-cs',
+          classId: '11',
           status: 'graded',
           pointsAwarded: 100,
           submittedAt: Date.now() - 3600000 * 2,
@@ -254,7 +393,7 @@ export const BackendService = {
           userId: '12024',
           userName: 'SANTHOSH A',
           labId: 'fibonacci-adv',
-          classId: 'cls-grade-12-cs',
+          classId: '12',
           status: 'graded',
           pointsAwarded: 100,
           submittedAt: Date.now() - 3600000 * 24 * 2,
@@ -265,7 +404,7 @@ export const BackendService = {
           userId: '12024',
           userName: 'SANTHOSH A',
           labId: 'data-structures-linked',
-          classId: 'cls-grade-12-cs',
+          classId: '12',
           status: 'graded',
           pointsAwarded: 100,
           submittedAt: Date.now() - 3600000 * 12,
@@ -289,34 +428,57 @@ export const BackendService = {
       console.warn("Local storage cleanup warning:", e);
     }
 
-    // 2. Sync to Firestore (Ensure classrooms and students exist with exact points)
+    // 2. Sync to Firestore: Delete unwanted classrooms & students and ensure valid students exist
     try {
-      await setDoc(doc(db, "classrooms", DEFAULT_GRADE_12_CLASS.id), DEFAULT_GRADE_12_CLASS, { merge: true });
-      await setDoc(doc(db, "classrooms", DEFAULT_GRADE_11_CLASS.id), DEFAULT_GRADE_11_CLASS, { merge: true });
+      // Delete unwanted classrooms from Firestore
+      await deleteDoc(doc(db, "classrooms", "cls-grade-12-cs")).catch(() => {});
+      await deleteDoc(doc(db, "classrooms", "cls-grade-11-cs")).catch(() => {});
 
-      // Ensure students in Firestore
-      for (const student of DEFAULT_G12_STUDENTS) {
-        const userRef = doc(db, "users", student.id);
-        await setDoc(userRef, student, { merge: true });
-      }
-
-      for (const student of DEFAULT_G11_STUDENTS) {
-        const userRef = doc(db, "users", student.id);
-        await setDoc(userRef, student, { merge: true });
-      }
-
-      // Reset any legacy students with 50 XP and ensure SANTHOSH A has 200 XP
-      const usersSnap = await getDocs(query(collection(db, "users"), where("role", "==", "student")));
-      for (const d of usersSnap.docs) {
-        const u = d.data() as User;
-        if (u.name?.toLowerCase().includes('santhosh') || u.id === '12024' || u.username === '12024' || u.id === 'std-santhosh') {
-          await updateDoc(d.ref, { name: 'SANTHOSH A', username: '12024', points: 200, streak: 2 });
-        } else if (u.name?.toLowerCase().includes('avanthika')) {
-          await updateDoc(d.ref, { points: 400, streak: 4 });
-        } else if (u.points === 50 && (!u.grades || u.grades.some(g => g.includes('12')))) {
-          await updateDoc(d.ref, { points: 0 });
+      try {
+        const clsSnap = await getDocs(collection(db, "classrooms"));
+        for (const d of clsSnap.docs) {
+          const cData = d.data();
+          if (isDeletedClassroom({ ...cData, id: d.id })) {
+            await deleteDoc(d.ref).catch(() => {});
+          }
         }
+      } catch (e) {}
+
+      // Delete the 9 unwanted students from Firestore users
+      for (const studentId of DELETED_STUDENT_IDS) {
+        await deleteDoc(doc(db, "users", studentId)).catch(() => {});
       }
+
+      try {
+        const usersSnap = await getDocs(collection(db, "users"));
+        for (const d of usersSnap.docs) {
+          const u = d.data() as User;
+          if (isDeletedStudent({ name: u.name, username: u.username, id: d.id })) {
+            await deleteDoc(d.ref).catch(() => {});
+          } else if (u.name?.toLowerCase().includes('santhosh') || u.id === '12024' || u.username === '12024' || u.id === 'std-santhosh') {
+            if (d.id !== '12024') {
+              await deleteDoc(d.ref).catch(() => {});
+            } else {
+              await updateDoc(d.ref, { name: 'SANTHOSH A', username: '12024', points: 200, streak: 2 }).catch(() => {});
+            }
+          } else if (u.name?.toLowerCase().includes('avanthika') || u.id === '11003' || u.username === '11003' || u.id === 'std-avanthika') {
+            if (d.id !== '11003') {
+              await deleteDoc(d.ref).catch(() => {});
+            } else {
+              await updateDoc(d.ref, { name: 'Avanthika', username: '11003', points: 400, streak: 4 }).catch(() => {});
+            }
+          }
+        }
+      } catch (e) {}
+
+      // Ensure default classrooms exist in Firestore
+      for (const cls of DEFAULT_CLASSROOMS) {
+        await setDoc(doc(db, "classrooms", cls.id), cls, { merge: true }).catch(() => {});
+      }
+
+      // Ensure SANTHOSH A and Avanthika exist in Firestore with enrolled classrooms
+      await setDoc(doc(db, "users", DEFAULT_G12_STUDENTS[0].id), DEFAULT_G12_STUDENTS[0], { merge: true }).catch(() => {});
+      await setDoc(doc(db, "users", DEFAULT_G11_STUDENTS[0].id), DEFAULT_G11_STUDENTS[0], { merge: true }).catch(() => {});
     } catch (e: any) {
       console.warn("Firestore sync in ensureAcademicData:", e);
     }
@@ -531,8 +693,136 @@ export const BackendService = {
     await updateDoc(doc(db, "users", userId), data);
   },
 
-  async deleteUser(userId: string): Promise<void> {
-    await deleteDoc(doc(db, "users", userId));
+  async getDeletedUsers(): Promise<(User & { deletedAt?: number })[]> {
+    try {
+      const localStr = localStorage.getItem("ti_moodle_deleted_users");
+      let deletedList: (User & { deletedAt?: number })[] = localStr ? JSON.parse(localStr) : [];
+      
+      // If none in local storage, initialize with initial archive (minus any that were restored)
+      if (deletedList.length === 0) {
+        deletedList = [...INITIAL_ARCHIVED_DELETED_STUDENTS];
+        localStorage.setItem("ti_moodle_deleted_users", JSON.stringify(deletedList));
+      }
+
+      // Also try fetching from Firestore 'deleted_users' collection
+      try {
+        const snap = await getDocs(collection(db, "deleted_users"));
+        if (!snap.empty) {
+          const fsDeleted = snap.docs.map(d => ({ ...d.data(), id: d.id } as User & { deletedAt?: number }));
+          const map = new Map<string, User & { deletedAt?: number }>();
+          deletedList.forEach(u => map.set(u.id, u));
+          fsDeleted.forEach(u => map.set(u.id, u));
+          deletedList = Array.from(map.values());
+        }
+      } catch (e) {}
+
+      const restoredIds = getRestoredUserIds();
+      return deletedList.filter(u => {
+        const idLower = (u.id || '').toLowerCase();
+        const usernameLower = (u.username || '').toLowerCase();
+        const nameLower = (u.name || '').toLowerCase();
+        return !restoredIds.has(idLower) && !restoredIds.has(usernameLower) && !restoredIds.has(nameLower);
+      });
+    } catch (e) {
+      return [...INITIAL_ARCHIVED_DELETED_STUDENTS];
+    }
+  },
+
+  async deleteUser(userId: string, userObj?: User): Promise<void> {
+    try {
+      // 1. Get user data if not provided
+      let userToDelete: User | null = userObj || null;
+      if (!userToDelete) {
+        try {
+          const docSnap = await getDoc(doc(db, "users", userId));
+          if (docSnap.exists()) {
+            userToDelete = { ...docSnap.data(), id: docSnap.id } as User;
+          }
+        } catch (e) {}
+      }
+
+      const deletedRecord: User & { deletedAt?: number } = {
+        ...(userToDelete || {
+          id: userId,
+          username: userId,
+          name: 'Student',
+          role: 'student',
+          grades: [],
+          points: 0,
+          streak: 0,
+          isFirstLogin: false
+        }),
+        deletedAt: Date.now()
+      };
+
+      // 2. Remove from restored list if it was previously restored
+      removeRestoredUserId(userId);
+      if (deletedRecord.username) removeRestoredUserId(deletedRecord.username);
+      if (deletedRecord.name) removeRestoredUserId(deletedRecord.name);
+
+      // 3. Save to deleted_users in local storage and Firestore
+      try {
+        const localStr = localStorage.getItem("ti_moodle_deleted_users");
+        const list: (User & { deletedAt?: number })[] = localStr ? JSON.parse(localStr) : [...INITIAL_ARCHIVED_DELETED_STUDENTS];
+        const updated = [deletedRecord, ...list.filter(u => u.id !== userId && u.username !== deletedRecord.username)];
+        localStorage.setItem("ti_moodle_deleted_users", JSON.stringify(updated));
+      } catch (e) {}
+
+      try {
+        await setDoc(doc(db, "deleted_users", userId), deletedRecord);
+      } catch (e) {}
+
+      // 4. Delete from active users in Firestore
+      await deleteDoc(doc(db, "users", userId));
+    } catch (e) {
+      console.error("Error deleting user:", e);
+      throw e;
+    }
+  },
+
+  async restoreUser(user: User): Promise<void> {
+    try {
+      // 1. Add to restored user IDs whitelist
+      addRestoredUserId(user.id);
+      if (user.username) addRestoredUserId(user.username);
+      if (user.name) addRestoredUserId(user.name);
+
+      // 2. Remove from local deleted_users and Firestore deleted_users
+      try {
+        const localStr = localStorage.getItem("ti_moodle_deleted_users");
+        if (localStr) {
+          const list: User[] = JSON.parse(localStr);
+          const filtered = list.filter(u => u.id !== user.id && u.username !== user.username && u.name?.toLowerCase() !== user.name?.toLowerCase());
+          localStorage.setItem("ti_moodle_deleted_users", JSON.stringify(filtered));
+        }
+      } catch (e) {}
+
+      try {
+        await deleteDoc(doc(db, "deleted_users", user.id));
+      } catch (e) {}
+
+      // 3. Put back in active users in Firestore
+      const restoredUser: User = {
+        ...user,
+        isFirstLogin: false
+      };
+      await setDoc(doc(db, "users", user.id), restoredUser, { merge: true });
+    } catch (e) {
+      console.error("Error restoring user:", e);
+      throw e;
+    }
+  },
+
+  async permanentlyDeleteArchivedUser(userId: string): Promise<void> {
+    try {
+      const localStr = localStorage.getItem("ti_moodle_deleted_users");
+      if (localStr) {
+        const list: User[] = JSON.parse(localStr);
+        const filtered = list.filter(u => u.id !== userId);
+        localStorage.setItem("ti_moodle_deleted_users", JSON.stringify(filtered));
+      }
+      await deleteDoc(doc(db, "deleted_users", userId)).catch(() => {});
+    } catch (e) {}
   },
 
   async enrollStudent(studentId: string, classId: string): Promise<void> {
@@ -553,14 +843,15 @@ export const BackendService = {
     try {
         const snap = await getDocs(collection(db, "users"));
         if (!snap.empty) {
-          const users = snap.docs.map(d => ({
-              ...d.data(),
-              id: d.id,
-              grades: d.data().grades || [],
-              points: d.data().points || 0,
-              streak: d.data().streak || 0
-          } as User));
-          return users;
+          const rawUsers = snap.docs
+            .map(d => ({
+                ...d.data(),
+                id: d.id,
+                grades: d.data().grades || [],
+                points: d.data().points || 0,
+                streak: d.data().streak || 0
+            } as User));
+          return normalizeAndDeduplicateUsers(rawUsers);
         }
         return [...DEFAULT_G12_STUDENTS, ...DEFAULT_G11_STUDENTS];
     } catch (e: any) {
@@ -569,11 +860,10 @@ export const BackendService = {
   },
 
   async getClassrooms(user?: User | null): Promise<Classroom[]> {
-    if (!user) return [DEFAULT_GRADE_12_CLASS, DEFAULT_GRADE_11_CLASS];
     try {
       const colRef = collection(db, "classrooms");
       let snap;
-      if (user.role === 'admin') {
+      if (!user || user.role === 'admin') {
         snap = await getDocs(colRef);
       } else if (user.role === 'teacher') {
         const q = query(colRef, where("teacherId", "==", user.id));
@@ -584,27 +874,33 @@ export const BackendService = {
       } else if (user.role === 'student' && user.grades && user.grades.length > 0) {
         const results: Classroom[] = [];
         for (const classId of user.grades) {
+          if (isDeletedClassroom({ id: classId })) continue;
           const snapDoc = await getDoc(doc(db, "classrooms", classId));
           if (snapDoc.exists()) {
-            results.push({ ...snapDoc.data(), id: snapDoc.id } as Classroom);
+            const data = { ...snapDoc.data(), id: snapDoc.id } as Classroom;
+            if (!isDeletedClassroom(data)) {
+              results.push(data);
+            }
           }
         }
         if (results.length > 0) return results;
       }
 
       if (snap && !snap.empty) {
-        const list = snap.docs.map(d => ({ ...d.data(), id: d.id } as Classroom));
-        if (!list.some(c => c.id === 'cls-grade-12-cs' || c.name.toLowerCase().includes('grade 12'))) {
-          list.unshift(DEFAULT_GRADE_12_CLASS);
+        const list = snap.docs
+          .map(d => ({ ...d.data(), id: d.id } as Classroom))
+          .filter(c => !isDeletedClassroom(c));
+        if (list.length > 0) {
+          // Merge with default classrooms if missing
+          const map = new Map<string, Classroom>();
+          DEFAULT_CLASSROOMS.forEach(c => map.set(c.id, c));
+          list.forEach(c => map.set(c.id, c));
+          return Array.from(map.values());
         }
-        if (!list.some(c => c.id === 'cls-grade-11-cs' || c.name.toLowerCase().includes('grade 11'))) {
-          list.push(DEFAULT_GRADE_11_CLASS);
-        }
-        return list;
       }
-      return [DEFAULT_GRADE_12_CLASS, DEFAULT_GRADE_11_CLASS];
+      return DEFAULT_CLASSROOMS;
     } catch (e: any) {
-      return [DEFAULT_GRADE_12_CLASS, DEFAULT_GRADE_11_CLASS];
+      return DEFAULT_CLASSROOMS;
     }
   },
 
@@ -724,35 +1020,17 @@ export const BackendService = {
   listenToStudents(callback: (users: User[]) => void) {
     const q = query(collection(db, "users"), where("role", "==", "student"));
     return onSnapshot(q, (snap) => {
-      let students = snap.docs.map(d => ({
-        ...d.data(),
-        id: d.id,
-        grades: d.data().grades || [],
-        points: d.data().points || 0,
-        streak: d.data().streak || 0
-      } as User));
-      if (students.length === 0) {
-        students = [...DEFAULT_G12_STUDENTS, ...DEFAULT_G11_STUDENTS];
-      } else {
-        // If Grade 12 students are missing in Firestore, include default Grade 12 students
-        const hasG12 = students.some(s => s.grades?.some(g => g.includes('12') || g === 'cls-grade-12-cs'));
-        if (!hasG12) {
-          students = [...students, ...DEFAULT_G12_STUDENTS];
-        } else if (!students.some(s => s.name?.toLowerCase().includes('santhosh') || s.username?.toLowerCase().includes('santhosh'))) {
-          const santhosh = DEFAULT_G12_STUDENTS.find(s => s.name.toLowerCase().includes('santhosh'));
-          if (santhosh) students.push(santhosh);
-        }
+      const rawStudents = snap.docs
+        .map(d => ({
+          ...d.data(),
+          id: d.id,
+          grades: d.data().grades || [],
+          points: d.data().points || 0,
+          streak: d.data().streak || 0
+        } as User));
 
-        // If Grade 11 students are missing in Firestore, include default Grade 11 students
-        const hasG11 = students.some(s => s.grades?.some(g => g.includes('11') || g === 'cls-grade-11-cs'));
-        if (!hasG11) {
-          students = [...students, ...DEFAULT_G11_STUDENTS];
-        } else if (!students.some(s => s.name?.toLowerCase().includes('avanthika') || s.username?.toLowerCase().includes('avanthika'))) {
-          const avanthika = DEFAULT_G11_STUDENTS.find(s => s.name.toLowerCase().includes('avanthika'));
-          if (avanthika) students.push(avanthika);
-        }
-      }
-      callback(students);
+      const deduplicated = normalizeAndDeduplicateUsers(rawStudents);
+      callback(deduplicated);
     }, (err) => {
       console.warn("Listen to students failed:", err);
       callback([...DEFAULT_G12_STUDENTS, ...DEFAULT_G11_STUDENTS]);

@@ -201,7 +201,7 @@ builtins.input = mock_in
 
     const { selectionStart, selectionEnd, value } = textarea;
 
-    // 1. Enter key: Auto-indent and Colon handling
+    // 1. Enter key: Smart Auto-indentation and Colon Handling
     if (e.key === 'Enter') {
       e.preventDefault();
       const beforeCursor = value.substring(0, selectionStart);
@@ -214,9 +214,9 @@ builtins.input = mock_in
 
       // Check if code before cursor on current line ends with colon (ignoring comments & trailing space)
       const lineCodeWithoutComments = currentLine.replace(/#.*$/, '').trimEnd();
-      const endsWithColon = lineCodeWithoutComments.endsWith(':');
+      const endsWithColon = lineCodeWithoutComments.endsWith(':') || /:\s*$/.test(currentLine.replace(/#.*$/, ''));
 
-      // Add 4 spaces of Python indentation when a colon is given
+      // Add 4 spaces of Python indentation when a colon was given
       const nextIndent = currentIndent + (endsWithColon ? '    ' : '');
       const textToInsert = '\n' + nextIndent;
 
@@ -237,7 +237,7 @@ builtins.input = mock_in
       return;
     }
 
-    // 2. Tab key: Indent or Block Indent / Shift+Tab: Dedent
+    // 2. Tab key: Indent 4 spaces or Block Indent / Shift+Tab: Dedent
     if (e.key === 'Tab') {
       e.preventDefault();
       if (e.shiftKey) {
@@ -322,8 +322,104 @@ builtins.input = mock_in
       return;
     }
 
-    // 3. Backspace on 4-space tab indentation
-    if (e.key === 'Backspace' && selectionStart === selectionEnd) {
+    // 3. Auto-pair brackets and quotes
+    const pairs: { [key: string]: string } = { '(': ')', '[': ']', '{': '}', '"': '"', "'": "'" };
+    const closePairs: { [key: string]: string } = { ')': '(', ']': '[', '}': '{', '"': '"', "'": "'" };
+
+    if (pairs[e.key] && !e.ctrlKey && !e.metaKey && !e.altKey) {
+      const openChar = e.key;
+      const closeChar = pairs[openChar];
+
+      if (selectionStart !== selectionEnd) {
+        // Wrap selection
+        e.preventDefault();
+        const selectedText = value.substring(selectionStart, selectionEnd);
+        const updatedCode = value.substring(0, selectionStart) + openChar + selectedText + closeChar + value.substring(selectionEnd);
+        setCode(updatedCode);
+        onCodeChange?.(updatedCode);
+        requestAnimationFrame(() => {
+          if (textareaRef.current) {
+            textareaRef.current.selectionStart = selectionStart + 1;
+            textareaRef.current.selectionEnd = selectionEnd + 1;
+            syncScroll();
+          }
+        });
+        return;
+      } else {
+        // If typing closing quote right before existing closing quote, skip over it
+        if ((openChar === '"' || openChar === "'") && value[selectionStart] === openChar) {
+          e.preventDefault();
+          const newPos = selectionStart + 1;
+          requestAnimationFrame(() => {
+            if (textareaRef.current) {
+              textareaRef.current.selectionStart = newPos;
+              textareaRef.current.selectionEnd = newPos;
+              syncScroll();
+            }
+          });
+          return;
+        }
+
+        // Insert open and close pair
+        e.preventDefault();
+        const updatedCode = value.substring(0, selectionStart) + openChar + closeChar + value.substring(selectionEnd);
+        setCode(updatedCode);
+        onCodeChange?.(updatedCode);
+        const newPos = selectionStart + 1;
+        requestAnimationFrame(() => {
+          if (textareaRef.current) {
+            textareaRef.current.selectionStart = newPos;
+            textareaRef.current.selectionEnd = newPos;
+            syncScroll();
+          }
+        });
+        return;
+      }
+    }
+
+    // Skip over closing bracket if typed right before it
+    if ((e.key === ')' || e.key === ']' || e.key === '}') && value[selectionStart] === e.key && selectionStart === selectionEnd) {
+      e.preventDefault();
+      const newPos = selectionStart + 1;
+      requestAnimationFrame(() => {
+        if (textareaRef.current) {
+          textareaRef.current.selectionStart = newPos;
+          textareaRef.current.selectionEnd = newPos;
+          syncScroll();
+        }
+      });
+      return;
+    }
+
+    // 4. Backspace on 4-space tab indentation or inside empty pair
+    if (e.key === 'Backspace' && selectionStart === selectionEnd && selectionStart > 0) {
+      const prevChar = value[selectionStart - 1];
+      const nextChar = value[selectionStart];
+
+      // Delete paired brackets/quotes together if cursor is in the middle
+      if (
+        (prevChar === '(' && nextChar === ')') ||
+        (prevChar === '[' && nextChar === ']') ||
+        (prevChar === '{' && nextChar === '}') ||
+        (prevChar === '"' && nextChar === '"') ||
+        (prevChar === "'" && nextChar === "'")
+      ) {
+        e.preventDefault();
+        const updatedCode = value.substring(0, selectionStart - 1) + value.substring(selectionStart + 1);
+        setCode(updatedCode);
+        onCodeChange?.(updatedCode);
+        const newPos = selectionStart - 1;
+        requestAnimationFrame(() => {
+          if (textareaRef.current) {
+            textareaRef.current.selectionStart = newPos;
+            textareaRef.current.selectionEnd = newPos;
+            syncScroll();
+          }
+        });
+        return;
+      }
+
+      // Delete 4 spaces if at indentation boundary
       const beforeCursor = value.substring(0, selectionStart);
       const lineStart = beforeCursor.lastIndexOf('\n') + 1;
       const currentLineBeforeCursor = beforeCursor.substring(lineStart);

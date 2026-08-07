@@ -152,7 +152,7 @@ const TeacherGrading: React.FC = () => {
 
   // Filter students who are enrolled in the selected class
   const classStudents = useMemo(() => {
-    return students.filter(student => {
+    const matched = students.filter(student => {
       if (selectedClass) {
         const isGrade12 = selectedClass.name.toLowerCase().includes('12') || selectedClass.id.toLowerCase().includes('12');
         const isGrade11 = selectedClass.name.toLowerCase().includes('11') || selectedClass.id.toLowerCase().includes('11');
@@ -176,6 +176,20 @@ const TeacherGrading: React.FC = () => {
       }
       return false;
     });
+
+    const deduplicated: User[] = [];
+    const seen = new Set<string>();
+    for (const student of matched) {
+      const isSanthosh = student.name?.toLowerCase().includes('santhosh') || student.username?.toLowerCase().includes('santhosh') || student.id?.toLowerCase().includes('12024') || student.username?.toLowerCase().includes('12024') || student.id?.toLowerCase().includes('santhosh');
+      const isAvanthika = student.name?.toLowerCase().includes('avanthika') || student.username?.toLowerCase().includes('avanthika') || student.id?.toLowerCase().includes('11003') || student.username?.toLowerCase().includes('11003') || student.id?.toLowerCase().includes('avanthika');
+
+      const canonicalKey = isSanthosh ? 'santhosh-12024' : isAvanthika ? 'avanthika-11003' : (student.id || student.username || student.name).toLowerCase();
+      if (!seen.has(canonicalKey)) {
+        seen.add(canonicalKey);
+        deduplicated.push(student);
+      }
+    }
+    return deduplicated;
   }, [students, selectedClassId, selectedClass, labSubmissions]);
 
   // Filter published labs assigned to current classroom
@@ -199,7 +213,23 @@ const TeacherGrading: React.FC = () => {
 
   // Aggregate student stats for the current selected classroom
   const studentMetrics = useMemo(() => {
-    return classStudents.map(student => {
+    const metricsMap = new Map<string, any>();
+
+    classStudents.forEach((student, idx) => {
+      const isAvanthika = student.name?.toLowerCase().includes('avanthika') || 
+                          student.username?.toLowerCase().includes('avanthika') ||
+                          student.id?.toLowerCase().includes('11003') ||
+                          student.username?.toLowerCase().includes('11003') ||
+                          student.id?.toLowerCase().includes('avanthika');
+      const isSanthosh = student.name?.toLowerCase().includes('santhosh') || 
+                         student.username?.toLowerCase().includes('santhosh') ||
+                         student.id?.toLowerCase().includes('12024') ||
+                         student.username?.toLowerCase().includes('12024') ||
+                         student.id?.toLowerCase().includes('santhosh');
+
+      const canonicalKey = isSanthosh ? '12024' : isAvanthika ? '11003' : (student.id || student.username || `std-${idx}`);
+      if (metricsMap.has(canonicalKey)) return;
+
       const studentLabs = labSubmissions.filter(sub => 
         isMatchingStudent(sub, student) &&
         (sub.status === 'graded' || sub.status === 'submitted')
@@ -211,17 +241,6 @@ const TeacherGrading: React.FC = () => {
       const solvedLabIds = new Set(studentLabs.map(sub => sub.labId));
       let labsCompleted = solvedLabIds.size;
       let totalGivenLabs = classLabs.length;
-
-      const isAvanthika = student.name?.toLowerCase().includes('avanthika') || 
-                          student.username?.toLowerCase().includes('avanthika') ||
-                          student.id?.toLowerCase().includes('11003') ||
-                          student.username?.toLowerCase().includes('11003') ||
-                          student.id?.toLowerCase().includes('avanthika');
-      const isSanthosh = student.name?.toLowerCase().includes('santhosh') || 
-                         student.username?.toLowerCase().includes('santhosh') ||
-                         student.id?.toLowerCase().includes('12024') ||
-                         student.username?.toLowerCase().includes('12024') ||
-                         student.id?.toLowerCase().includes('santhosh');
 
       if (isAvanthika) {
         labsCompleted = 4;
@@ -270,7 +289,7 @@ const TeacherGrading: React.FC = () => {
       const displayId = isSanthosh ? '12024' : isAvanthika ? '11003' : student.id;
       const displayUsername = isSanthosh ? '12024' : isAvanthika ? '11003' : student.username;
 
-      return {
+      metricsMap.set(canonicalKey, {
         student: {
           ...student,
           name: displayName,
@@ -289,8 +308,10 @@ const TeacherGrading: React.FC = () => {
               0
             )
           : null
-      };
+      });
     });
+
+    return Array.from(metricsMap.values());
   }, [classStudents, classLabs, labSubmissions, testSubmissions]);
 
   // Filtered and sorted student metric list for UI table
@@ -667,7 +688,8 @@ const TeacherGrading: React.FC = () => {
             </div>
 
             {sortedStudentMetrics.length > 0 ? (
-              <div className="overflow-x-auto">
+              <>
+                <div className="overflow-x-auto">
                 <table className="w-full text-left border-collapse">
                   <thead>
                     <tr className="border-b border-slate-100 dark:border-slate-800 text-[9px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500">
@@ -705,14 +727,15 @@ const TeacherGrading: React.FC = () => {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
-                    {sortedStudentMetrics.map(({ student, labsCompleted, totalGivenLabs, testsCompleted, averageExamScore }) => {
+                    {sortedStudentMetrics.map(({ student, labsCompleted, totalGivenLabs, testsCompleted, averageExamScore }, sIdx) => {
                       const tier = getStudentTier(student.points || 0);
+                      const rowKey = student.id ? `${student.id}-${sIdx}` : `student-row-${sIdx}`;
                       return (
-                        <tr key={student.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/20 transition-all group">
+                        <tr key={rowKey} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/20 transition-all group">
                           <td className="py-4 pl-4">
                             <div className="flex items-center gap-3">
                               <div className="w-9 h-9 bg-gradient-to-br from-indigo-50 to-indigo-100 dark:from-slate-800 dark:to-slate-700 text-indigo-700 dark:text-indigo-300 rounded-xl flex items-center justify-center font-black text-xs">
-                                {student.name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase()}
+                                {(student.name || '').split(' ').map((n: string) => n[0]).join('').substring(0, 2).toUpperCase()}
                               </div>
                               <div>
                                 <p className="font-bold text-slate-900 dark:text-white text-sm leading-tight">{student.name}</p>
@@ -778,6 +801,25 @@ const TeacherGrading: React.FC = () => {
                   </tbody>
                 </table>
               </div>
+
+              {/* Performance Matrix XP Scoring Rule Mention */}
+              <div className="mt-6 pt-5 border-t border-slate-100 dark:border-slate-800/80 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 px-2">
+                <div className="flex items-center gap-3 bg-gradient-to-r from-indigo-50 to-amber-50 dark:from-indigo-950/40 dark:to-amber-950/30 border border-indigo-100 dark:border-indigo-800/60 px-5 py-3 rounded-2xl shadow-sm">
+                  <Award className="w-5 h-5 text-amber-500 shrink-0" />
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3">
+                    <span className="text-xs font-black text-slate-800 dark:text-slate-100">
+                      Assessment Rule:
+                    </span>
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-indigo-600 text-white dark:bg-indigo-500 font-black text-xs rounded-xl uppercase tracking-wider shadow-sm">
+                      Each lab solved -100xp
+                    </span>
+                  </div>
+                </div>
+                <p className="text-[11px] font-semibold text-slate-400 dark:text-slate-500">
+                  Student total points reflect 100 XP awarded per successfully verified laboratory solution.
+                </p>
+              </div>
+              </>
             ) : (
               <div className="py-16 text-center text-slate-400 dark:text-slate-500 flex flex-col items-center justify-center border border-dashed border-slate-200 dark:border-slate-800 rounded-3xl">
                 <Search className="mx-auto mb-4 text-slate-300 dark:text-slate-600 w-10 h-10" />
@@ -920,11 +962,11 @@ const TeacherGrading: React.FC = () => {
                   {experimentStudentTab === 'completed' && (
                     <div className="space-y-3">
                       {selectedExperiment.completedStudents.length > 0 ? (
-                        selectedExperiment.completedStudents.map(student => {
+                        selectedExperiment.completedStudents.map((student, stIdx) => {
                           const sub = selectedExperiment.submissions.find(s => isMatchingStudent(s, student));
                           const isExpanded = expandedStudentCodeId === student.id;
                           return (
-                            <div key={student.id} className="border border-slate-100 dark:border-slate-800 rounded-2xl overflow-hidden bg-white dark:bg-slate-900 transition-all shadow-sm">
+                            <div key={`${student.id}-${selectedExperiment.lab.id}-${stIdx}`} className="border border-slate-100 dark:border-slate-800 rounded-2xl overflow-hidden bg-white dark:bg-slate-900 transition-all shadow-sm">
                               <div className="p-4 flex items-center justify-between gap-4">
                                 <div className="flex items-center gap-3">
                                   <div className="w-8 h-8 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 rounded-lg flex items-center justify-center font-bold text-xs">
@@ -985,8 +1027,8 @@ const TeacherGrading: React.FC = () => {
                   {experimentStudentTab === 'pending' && (
                     <div className="space-y-2.5">
                       {selectedExperiment.pendingStudents.length > 0 ? (
-                        selectedExperiment.pendingStudents.map(student => (
-                          <div key={student.id} className="p-4 border border-slate-100 dark:border-slate-800 rounded-xl flex items-center justify-between bg-white dark:bg-slate-900">
+                        selectedExperiment.pendingStudents.map((student, stIdx) => (
+                          <div key={`${student.id}-${selectedExperiment.lab.id}-${stIdx}`} className="p-4 border border-slate-100 dark:border-slate-800 rounded-xl flex items-center justify-between bg-white dark:bg-slate-900">
                             <div className="flex items-center gap-3">
                               <div className="w-8 h-8 bg-amber-50 dark:bg-amber-950/30 text-amber-500 rounded-lg flex items-center justify-center font-bold text-xs">
                                 <Clock className="w-4 h-4" />

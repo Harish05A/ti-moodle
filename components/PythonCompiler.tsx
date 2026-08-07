@@ -300,7 +300,7 @@ def __transform_code(user_code_str):
       const currentIndent = indentMatch ? indentMatch[1] : '';
 
       const lineCodeWithoutComments = currentLine.replace(/#.*$/, '').trimEnd();
-      const endsWithColon = lineCodeWithoutComments.endsWith(':');
+      const endsWithColon = lineCodeWithoutComments.endsWith(':') || /:\s*$/.test(currentLine.replace(/#.*$/, ''));
 
       const nextIndent = currentIndent + (endsWithColon ? '    ' : '');
       const textToInsert = '\n' + nextIndent;
@@ -403,8 +403,95 @@ def __transform_code(user_code_str):
       return;
     }
 
-    // 3. Backspace on 4-space tab indentation
-    if (e.key === 'Backspace' && selectionStart === selectionEnd) {
+    // 3. Auto-pair brackets and quotes
+    const pairs: { [key: string]: string } = { '(': ')', '[': ']', '{': '}', '"': '"', "'": "'" };
+
+    if (pairs[e.key] && !e.ctrlKey && !e.metaKey && !e.altKey) {
+      const openChar = e.key;
+      const closeChar = pairs[openChar];
+
+      if (selectionStart !== selectionEnd) {
+        e.preventDefault();
+        const selectedText = value.substring(selectionStart, selectionEnd);
+        const updatedCode = value.substring(0, selectionStart) + openChar + selectedText + closeChar + value.substring(selectionEnd);
+        setCode(updatedCode);
+        requestAnimationFrame(() => {
+          if (textareaRef.current) {
+            textareaRef.current.selectionStart = selectionStart + 1;
+            textareaRef.current.selectionEnd = selectionEnd + 1;
+            syncScroll();
+          }
+        });
+        return;
+      } else {
+        if ((openChar === '"' || openChar === "'") && value[selectionStart] === openChar) {
+          e.preventDefault();
+          const newPos = selectionStart + 1;
+          requestAnimationFrame(() => {
+            if (textareaRef.current) {
+              textareaRef.current.selectionStart = newPos;
+              textareaRef.current.selectionEnd = newPos;
+              syncScroll();
+            }
+          });
+          return;
+        }
+
+        e.preventDefault();
+        const updatedCode = value.substring(0, selectionStart) + openChar + closeChar + value.substring(selectionEnd);
+        setCode(updatedCode);
+        const newPos = selectionStart + 1;
+        requestAnimationFrame(() => {
+          if (textareaRef.current) {
+            textareaRef.current.selectionStart = newPos;
+            textareaRef.current.selectionEnd = newPos;
+            syncScroll();
+          }
+        });
+        return;
+      }
+    }
+
+    // Skip over closing bracket if typed right before it
+    if ((e.key === ')' || e.key === ']' || e.key === '}') && value[selectionStart] === e.key && selectionStart === selectionEnd) {
+      e.preventDefault();
+      const newPos = selectionStart + 1;
+      requestAnimationFrame(() => {
+        if (textareaRef.current) {
+          textareaRef.current.selectionStart = newPos;
+          textareaRef.current.selectionEnd = newPos;
+          syncScroll();
+        }
+      });
+      return;
+    }
+
+    // 4. Backspace on 4-space tab indentation or paired symbols
+    if (e.key === 'Backspace' && selectionStart === selectionEnd && selectionStart > 0) {
+      const prevChar = value[selectionStart - 1];
+      const nextChar = value[selectionStart];
+
+      if (
+        (prevChar === '(' && nextChar === ')') ||
+        (prevChar === '[' && nextChar === ']') ||
+        (prevChar === '{' && nextChar === '}') ||
+        (prevChar === '"' && nextChar === '"') ||
+        (prevChar === "'" && nextChar === "'")
+      ) {
+        e.preventDefault();
+        const updatedCode = value.substring(0, selectionStart - 1) + value.substring(selectionStart + 1);
+        setCode(updatedCode);
+        const newPos = selectionStart - 1;
+        requestAnimationFrame(() => {
+          if (textareaRef.current) {
+            textareaRef.current.selectionStart = newPos;
+            textareaRef.current.selectionEnd = newPos;
+            syncScroll();
+          }
+        });
+        return;
+      }
+
       const beforeCursor = value.substring(0, selectionStart);
       const lineStart = beforeCursor.lastIndexOf('\n') + 1;
       const currentLineBeforeCursor = beforeCursor.substring(lineStart);

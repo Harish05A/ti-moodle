@@ -235,7 +235,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onSelectLab, labs = [], setView, 
                     </h3>
                     <div className="space-y-6">
                         {topStudents.length > 0 ? topStudents.map((top, idx) => (
-                            <div key={top.id} className="flex items-center gap-4">
+                            <div key={top.id ? `${top.id}-${idx}` : `top-${idx}`} className="flex items-center gap-4">
                                 <div className={`w-9 h-9 md:w-10 md:h-10 rounded-xl flex items-center justify-center font-bold text-xs ${idx === 0 ? 'bg-amber-500 text-white shadow-lg shadow-amber-500/20' : 'bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600'}`}>
                                     {idx + 1}
                                 </div>
@@ -348,7 +348,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onSelectLab, labs = [], setView, 
                         </h3>
                         <div className="space-y-4">
                             {topStudents.map((top, idx) => (
-                                <div key={top.id} className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800/50 rounded-2xl">
+                                <div key={top.id ? `${top.id}-${idx}` : `teacher-top-${idx}`} className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800/50 rounded-2xl">
                                     <div className="min-w-0 flex items-center gap-3">
                                         <span className="text-[10px] font-black text-indigo-500">{idx+1}</span>
                                         <div>
